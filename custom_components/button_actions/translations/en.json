@@ -18,6 +18,7 @@
           "click_window": "Click window (ms)",
           "long_press_time": "Long press time (ms)",
           "fire_events": "Also fire button_actions_gesture events",
+          "physical_only": "Only react to physical presses (ignore changes made by HA users/automations)",
           "single_click_targets": "Single click → toggle these",
           "double_click_targets": "Double click → toggle these",
           "long_press_targets": "Long press → toggle these"
@@ -57,6 +58,7 @@
           "click_window": "Click window (ms)",
           "long_press_time": "Long press time (ms)",
           "fire_events": "Also fire button_actions_gesture events",
+          "physical_only": "Only react to physical presses (ignore changes made by HA users/automations)",
           "single_click_targets": "Single click → toggle these",
           "double_click_targets": "Double click → toggle these",
           "long_press_targets": "Long press → toggle these"

@@ -113,6 +113,7 @@ Tools → Actions) — no restart needed.
 | `click_window` | `600` | ms to collect transitions after the first one |
 | `long_press_time` | `1200` | ms hold to trigger long press |
 | `fire_events` | `false` | Also fire `button_actions_gesture` events |
+| `physical_only` | `false` | Only react to physical presses; ignore changes triggered by a Home Assistant user or automation/script |
 | `single_click_action` / `double_click_action` / `long_press_action` | — | Action sequences to run |
 
 ## Events

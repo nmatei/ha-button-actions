@@ -18,6 +18,7 @@ from .const import (
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
+    CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRANSITIONS_PER_CLICK,
     CONF_TRIGGER_ENTITY,
@@ -25,6 +26,7 @@ from .const import (
     DEFAULT_FIRE_EVENTS,
     DEFAULT_LONG_PRESS_TIME,
     DEFAULT_MODE,
+    DEFAULT_PHYSICAL_ONLY,
     MODES,
 )
 
@@ -39,6 +41,7 @@ MAPPING_SCHEMA = vol.Schema(
             CONF_LONG_PRESS_TIME, default=DEFAULT_LONG_PRESS_TIME
         ): cv.positive_int,
         vol.Optional(CONF_FIRE_EVENTS, default=DEFAULT_FIRE_EVENTS): cv.boolean,
+        vol.Optional(CONF_PHYSICAL_ONLY, default=DEFAULT_PHYSICAL_ONLY): cv.boolean,
         vol.Optional(CONF_SINGLE_CLICK_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_DOUBLE_CLICK_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_LONG_PRESS_ACTION): cv.SCRIPT_SCHEMA,

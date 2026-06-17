@@ -28,6 +28,7 @@ from .const import (
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
+    CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRANSITIONS_PER_CLICK,
     CONF_TRIGGER_ENTITY,
@@ -35,6 +36,7 @@ from .const import (
     DEFAULT_FIRE_EVENTS,
     DEFAULT_LONG_PRESS_TIME,
     DEFAULT_MODE,
+    DEFAULT_PHYSICAL_ONLY,
     DOMAIN,
     EVENT_GESTURE,
     GESTURE_DOUBLE,
@@ -63,6 +65,9 @@ class ButtonActionController:
         self._name: str = config.get(CONF_NAME) or config[CONF_TRIGGER_ENTITY]
         self._entity_id: str = config[CONF_TRIGGER_ENTITY]
         self._fire_events: bool = config.get(CONF_FIRE_EVENTS, DEFAULT_FIRE_EVENTS)
+        self._physical_only: bool = config.get(
+            CONF_PHYSICAL_ONLY, DEFAULT_PHYSICAL_ONLY
+        )
 
         mode = config.get(CONF_MODE, DEFAULT_MODE)
         self._transitions_per_click: int = config.get(
@@ -189,7 +194,28 @@ class ButtonActionController:
             # Not a real transition (e.g. an attribute-only change).
             return
 
+        if self._physical_only and self._is_ha_initiated(event.context):
+            # The change was triggered by a Home Assistant user/automation, not
+            # a physical press. Skip it when the mapping wants physical only.
+            _LOGGER.debug(
+                "button_actions '%s' ignoring HA-initiated change of %s",
+                self._name,
+                self._entity_id,
+            )
+            return
+
         self._detector.handle_transition(new_on)
+
+    @staticmethod
+    def _is_ha_initiated(context: Optional[Context]) -> bool:
+        """True if a HA user or automation/script caused the change.
+
+        A genuine device (physical) change carries a fresh context with no
+        user and no parent; UI/automation/script changes set one of these.
+        """
+        if context is None:
+            return False
+        return context.user_id is not None or context.parent_id is not None
 
     def _schedule(self, delay_s: float, cb: Callable[[], None]) -> Callable[[], None]:
         """Arm a one-shot timer; return a cancel callable for the detector.

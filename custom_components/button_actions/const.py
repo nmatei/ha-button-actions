@@ -13,6 +13,7 @@ CONF_MODE: Final = "mode"
 CONF_CLICK_WINDOW: Final = "click_window"
 CONF_LONG_PRESS_TIME: Final = "long_press_time"
 CONF_FIRE_EVENTS: Final = "fire_events"
+CONF_PHYSICAL_ONLY: Final = "physical_only"
 CONF_TRANSITIONS_PER_CLICK: Final = "transitions_per_click"
 
 CONF_SINGLE_CLICK_ACTION: Final = "single_click_action"
@@ -46,6 +47,7 @@ DEFAULT_MODE: Final = MODE_MOMENTARY
 DEFAULT_CLICK_WINDOW: Final = 600  # ms
 DEFAULT_LONG_PRESS_TIME: Final = 1200  # ms
 DEFAULT_FIRE_EVENTS: Final = False
+DEFAULT_PHYSICAL_ONLY: Final = False
 
 # Events ----------------------------------------------------------------------
 EVENT_GESTURE: Final = "button_actions_gesture"

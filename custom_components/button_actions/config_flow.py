@@ -37,12 +37,14 @@ from .const import (
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
+    CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRIGGER_ENTITY,
     DEFAULT_CLICK_WINDOW,
     DEFAULT_FIRE_EVENTS,
     DEFAULT_LONG_PRESS_TIME,
     DEFAULT_MODE,
+    DEFAULT_PHYSICAL_ONLY,
     DOMAIN,
     MODES,
 )
@@ -69,6 +71,7 @@ TEMPLATE_MAPPING: dict[str, Any] = {
     "click_window": DEFAULT_CLICK_WINDOW,
     "long_press_time": DEFAULT_LONG_PRESS_TIME,
     "fire_events": False,
+    "physical_only": False,
     "single_click_action": [
         {"service": "light.toggle", "target": {"entity_id": ["light.strip_1"]}}
     ],
@@ -132,6 +135,9 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
         vol.Optional(
             CONF_FIRE_EVENTS, default=d(CONF_FIRE_EVENTS, DEFAULT_FIRE_EVENTS)
         ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_PHYSICAL_ONLY, default=d(CONF_PHYSICAL_ONLY, DEFAULT_PHYSICAL_ONLY)
+        ): selector.BooleanSelector(),
     }
 
     for action_key, target_key in _GESTURES:
@@ -170,6 +176,9 @@ def _mapping_from_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict
         ),
         CONF_FIRE_EVENTS: user_input.get(
             CONF_FIRE_EVENTS, base.get(CONF_FIRE_EVENTS, DEFAULT_FIRE_EVENTS)
+        ),
+        CONF_PHYSICAL_ONLY: user_input.get(
+            CONF_PHYSICAL_ONLY, base.get(CONF_PHYSICAL_ONLY, DEFAULT_PHYSICAL_ONLY)
         ),
     }
     name = (user_input.get(CONF_NAME) or "").strip()
