@@ -194,7 +194,10 @@ def _mapping_from_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict
             mapping[action_key] = [
                 {"service": "homeassistant.toggle", "target": target}
             ]
-        elif base.get(action_key):
+        elif base.get(action_key) and not _targets_from_action(base[action_key]):
+            # Preserve only actions the target picker can't represent (scenes,
+            # scripts, ...). A simple toggle that was shown in the picker and
+            # then cleared is intentionally removed.
             mapping[action_key] = base[action_key]
 
     return MAPPING_SCHEMA(mapping)
