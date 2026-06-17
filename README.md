@@ -1,4 +1,4 @@
-<img src="brand/icon.png" alt="Button Actions" width="96" align="left" hspace="12"/>
+<img src="custom_components/button_actions/brand/icon.png" alt="Button Actions" width="96" align="left" hspace="12"/>
 
 # Button Actions
 
