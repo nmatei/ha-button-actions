@@ -27,7 +27,7 @@ from .const import (
     SERVICE_RELOAD,
 )
 from .controller import ButtonActionController
-from .schema import MAPPING_SCHEMA
+from .schema import MAPPING_SCHEMA, mapping_title
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +86,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a UI-configured mapping from a config entry."""
     data = _domain_data(hass)
-    controller = ButtonActionController(hass, {**entry.data, **entry.options})
+    mapping = {**entry.data, **entry.options}
+
+    # Keep the entry title a fresh summary of what the mapping does. Done before
+    # the update listener is attached so it doesn't trigger an extra reload.
+    title = mapping_title(mapping)
+    if entry.title != title:
+        hass.config_entries.async_update_entry(entry, title=title)
+
+    controller = ButtonActionController(hass, mapping)
     controller.async_setup()
     data[DATA_CONTROLLERS][entry.entry_id] = controller
 

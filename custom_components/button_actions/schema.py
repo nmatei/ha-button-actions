@@ -44,3 +44,43 @@ MAPPING_SCHEMA = vol.Schema(
         vol.Optional(CONF_LONG_PRESS_ACTION): cv.SCRIPT_SCHEMA,
     }
 )
+
+_TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
+
+
+def _summarize_action(action: object) -> str:
+    """Short, human description of a gesture's action sequence."""
+    if not (isinstance(action, list) and action and isinstance(action[0], dict)):
+        return "action"
+    step = action[0]
+    service = step.get("service") or step.get("action") or "action"
+    target = step.get("target") if isinstance(step.get("target"), dict) else {}
+    entities = target.get("entity_id")
+    if entities:
+        if isinstance(entities, str):
+            entities = [entities]
+        summary = ", ".join(entities[:2])
+        if len(entities) > 2:
+            summary += f" +{len(entities) - 2}"
+        return summary if service in _TOGGLE_SERVICES else f"{service} → {summary}"
+    suffix = "" if len(action) == 1 else f" +{len(action) - 1}"
+    return f"{service}{suffix}"
+
+
+def mapping_title(mapping: dict) -> str:
+    """Build a one-line summary used as the config entry title.
+
+    Example: ``Laurentiu (switch.shelly) — click: light.a, light.b | 2×: scene.x``
+    """
+    name = mapping.get(CONF_NAME) or mapping[CONF_TRIGGER_ENTITY]
+    head = f"{name} ({mapping[CONF_TRIGGER_ENTITY]})"
+    segments = [
+        f"{label}: {_summarize_action(mapping[key])}"
+        for label, key in (
+            ("click", CONF_SINGLE_CLICK_ACTION),
+            ("2×", CONF_DOUBLE_CLICK_ACTION),
+            ("hold", CONF_LONG_PRESS_ACTION),
+        )
+        if mapping.get(key)
+    ]
+    return f"{head} — {' | '.join(segments)}" if segments else head

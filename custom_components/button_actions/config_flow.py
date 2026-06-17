@@ -1,13 +1,16 @@
 """Config and options flow for Button Actions.
 
-Both adding and editing offer two ways to configure a mapping:
+A mapping can be entered two ways, and you can switch between them at any time
+(a checkbox in each view jumps to the other, carrying your current values):
 
-* **Guided** — friendly fields (trigger entity, mode, timeouts) plus a target
-  picker per gesture, with an optional advanced YAML action that overrides it.
+* **Guided** — friendly fields (trigger entity, mode, timeouts) and a target
+  picker per gesture (toggle these lights).
 * **YAML** — the whole mapping as one YAML object, same shape as the examples,
-  so it can be pasted/copied/tweaked in one place.
+  for anything beyond a toggle (scenes, scripts, templates).
 
 Both paths produce the same normalized mapping (validated by MAPPING_SCHEMA).
+Actions that aren't a simple toggle are preserved when switching to the guided
+view (they just aren't shown as a target picker) and remain editable in YAML.
 """
 
 from __future__ import annotations
@@ -42,10 +45,13 @@ from .const import (
     DOMAIN,
     MODES,
 )
-from .schema import MAPPING_SCHEMA
+from .schema import MAPPING_SCHEMA, mapping_title
 
 # The single field that holds the whole mapping in the YAML step.
 CONF_CONFIG = "config"
+# Checkboxes that switch between views.
+SWITCH_TO_YAML = "edit_as_yaml"
+SWITCH_TO_FORM = "edit_with_fields"
 
 # (action key, UI-only target-picker key) per gesture.
 _GESTURES = (
@@ -53,6 +59,9 @@ _GESTURES = (
     (CONF_DOUBLE_CLICK_ACTION, "double_click_targets"),
     (CONF_LONG_PRESS_ACTION, "long_press_targets"),
 )
+
+# Services treated as a simple toggle for round-tripping to the target picker.
+_TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
 
 # Prefilled in the YAML add step so the expected shape is obvious.
 TEMPLATE_MAPPING: dict[str, Any] = {
@@ -74,8 +83,19 @@ def _has_targets(target: Any) -> bool:
     return any(target.get(key) for key in ("entity_id", "device_id", "area_id"))
 
 
+def _targets_from_action(action: Any) -> dict[str, Any]:
+    """If an action is a single toggle with a target, return that target."""
+    if isinstance(action, list) and len(action) == 1 and isinstance(action[0], dict):
+        step = action[0]
+        service = step.get("service") or step.get("action")
+        target = step.get("target")
+        if service in _TOGGLE_SERVICES and isinstance(target, dict):
+            return target
+    return {}
+
+
 def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
-    """Guided multi-field schema, prefilled from ``defaults``."""
+    """Guided multi-field schema, prefilled from a mapping-like ``defaults``."""
 
     def d(key: str, fallback: Any) -> Any:
         value = defaults.get(key, fallback)
@@ -117,57 +137,67 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
     }
 
     for action_key, target_key in _GESTURES:
+        target_default = defaults.get(target_key)
+        if not _has_targets(target_default):
+            target_default = _targets_from_action(defaults.get(action_key))
         schema[
-            vol.Optional(target_key, default=defaults.get(target_key, {}))
+            vol.Optional(target_key, default=target_default or {})
         ] = selector.TargetSelector()
-        action_default = defaults.get(action_key)
-        marker = (
-            vol.Optional(action_key, default=action_default)
-            if action_default
-            else vol.Optional(action_key)
-        )
-        schema[marker] = selector.ObjectSelector()
 
+    schema[vol.Optional(SWITCH_TO_YAML, default=False)] = selector.BooleanSelector()
     return vol.Schema(schema)
 
 
-def _config_schema(default_value: Any) -> vol.Schema:
-    """Single-field YAML schema."""
+def _yaml_schema(default_value: Any) -> vol.Schema:
+    """Single whole-mapping YAML field, plus a switch-to-guided checkbox."""
     return vol.Schema(
-        {vol.Required(CONF_CONFIG, default=default_value): selector.ObjectSelector()}
+        {
+            vol.Required(CONF_CONFIG, default=default_value): selector.ObjectSelector(),
+            vol.Optional(SWITCH_TO_FORM, default=False): selector.BooleanSelector(),
+        }
     )
 
 
-def _build_from_form(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Turn guided form input into a normalized, validated mapping."""
-    mapping: dict[str, Any] = {
-        CONF_TRIGGER_ENTITY: user_input.get(CONF_TRIGGER_ENTITY),
-        CONF_MODE: user_input.get(CONF_MODE, DEFAULT_MODE),
-        CONF_CLICK_WINDOW: int(user_input.get(CONF_CLICK_WINDOW, DEFAULT_CLICK_WINDOW)),
-        CONF_LONG_PRESS_TIME: int(
-            user_input.get(CONF_LONG_PRESS_TIME, DEFAULT_LONG_PRESS_TIME)
+def _merge_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
+    """Build a (loose) mapping draft from guided input, layered over ``base``.
+
+    Targets become a toggle action; gestures left empty keep whatever action the
+    base mapping already had (so non-toggle actions survive a view switch).
+    """
+    draft: dict[str, Any] = {
+        CONF_MODE: user_input.get(CONF_MODE, base.get(CONF_MODE, DEFAULT_MODE)),
+        CONF_CLICK_WINDOW: int(
+            user_input.get(CONF_CLICK_WINDOW, base.get(CONF_CLICK_WINDOW, DEFAULT_CLICK_WINDOW))
         ),
-        CONF_FIRE_EVENTS: user_input.get(CONF_FIRE_EVENTS, DEFAULT_FIRE_EVENTS),
+        CONF_LONG_PRESS_TIME: int(
+            user_input.get(
+                CONF_LONG_PRESS_TIME, base.get(CONF_LONG_PRESS_TIME, DEFAULT_LONG_PRESS_TIME)
+            )
+        ),
+        CONF_FIRE_EVENTS: user_input.get(
+            CONF_FIRE_EVENTS, base.get(CONF_FIRE_EVENTS, DEFAULT_FIRE_EVENTS)
+        ),
     }
     name = (user_input.get(CONF_NAME) or "").strip()
     if name:
-        mapping[CONF_NAME] = name
+        draft[CONF_NAME] = name
+    trigger = user_input.get(CONF_TRIGGER_ENTITY)
+    if trigger:
+        draft[CONF_TRIGGER_ENTITY] = trigger
 
     for action_key, target_key in _GESTURES:
-        action = user_input.get(action_key)
         target = user_input.get(target_key)
-        if action:  # an explicit YAML action wins over the target picker
-            mapping[action_key] = action
-        elif _has_targets(target):
-            mapping[action_key] = [
+        if _has_targets(target):
+            draft[action_key] = [
                 {"service": "homeassistant.toggle", "target": target}
             ]
+        elif base.get(action_key):
+            draft[action_key] = base[action_key]
 
-    return MAPPING_SCHEMA(mapping)
+    return draft
 
 
 def _validate_yaml(raw: Any) -> dict[str, Any]:
-    """Validate a pasted whole-mapping YAML object."""
     if not isinstance(raw, dict):
         raise vol.Invalid("Expected a single mapping (a YAML object)")
     return MAPPING_SCHEMA(raw)
@@ -181,6 +211,7 @@ class ButtonActionsConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        self._draft: dict[str, Any] = {}
         return self.async_show_menu(step_id="user", menu_options=["form", "yaml"])
 
     async def async_step_form(
@@ -188,38 +219,49 @@ class ButtonActionsConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            data = dict(user_input)
+            switch = data.pop(SWITCH_TO_YAML, False)
+            self._draft = _merge_form(data, self._draft)
+            if switch:
+                return await self.async_step_yaml()
             try:
-                mapping = _build_from_form(user_input)
+                mapping = MAPPING_SCHEMA(self._draft)
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 return await self._create(mapping)
+        defaults = user_input if user_input is not None else self._draft
         return self.async_show_form(
-            step_id="form", data_schema=_form_schema(user_input or {}), errors=errors
+            step_id="form", data_schema=_form_schema(defaults), errors=errors
         )
 
     async def async_step_yaml(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors: dict[str, str] = {}
-        raw: Any = TEMPLATE_MAPPING
         if user_input is not None:
+            switch = user_input.get(SWITCH_TO_FORM, False)
             raw = user_input.get(CONF_CONFIG)
+            self._draft = raw if isinstance(raw, dict) else {}
+            if switch:
+                return await self.async_step_form()
             try:
                 mapping = _validate_yaml(raw)
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 return await self._create(mapping)
+            default = raw
+        else:
+            default = self._draft or TEMPLATE_MAPPING
         return self.async_show_form(
-            step_id="yaml", data_schema=_config_schema(raw), errors=errors
+            step_id="yaml", data_schema=_yaml_schema(default), errors=errors
         )
 
     async def _create(self, mapping: dict[str, Any]) -> FlowResult:
         await self.async_set_unique_id(mapping[CONF_TRIGGER_ENTITY])
         self._abort_if_unique_id_configured()
-        title = mapping.get(CONF_NAME) or mapping[CONF_TRIGGER_ENTITY]
-        return self.async_create_entry(title=title, data=mapping)
+        return self.async_create_entry(title=mapping_title(mapping), data=mapping)
 
     @staticmethod
     @callback
@@ -232,6 +274,7 @@ class ButtonActionsOptionsFlow(OptionsFlow):
 
     def __init__(self, entry: ConfigEntry) -> None:
         self._entry = entry
+        self._draft: dict[str, Any] = dict(entry.data)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -243,15 +286,20 @@ class ButtonActionsOptionsFlow(OptionsFlow):
     ) -> FlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            data = dict(user_input)
+            switch = data.pop(SWITCH_TO_YAML, False)
+            self._draft = _merge_form(data, self._draft)
+            if switch:
+                return await self.async_step_yaml()
             try:
-                mapping = _build_from_form(user_input)
+                mapping = MAPPING_SCHEMA(self._draft)
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 result = self._apply(mapping, errors)
                 if result is not None:
                     return result
-        defaults = user_input if user_input is not None else dict(self._entry.data)
+        defaults = user_input if user_input is not None else self._draft
         return self.async_show_form(
             step_id="form", data_schema=_form_schema(defaults), errors=errors
         )
@@ -260,9 +308,12 @@ class ButtonActionsOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors: dict[str, str] = {}
-        raw: Any = dict(self._entry.data)
         if user_input is not None:
+            switch = user_input.get(SWITCH_TO_FORM, False)
             raw = user_input.get(CONF_CONFIG)
+            self._draft = raw if isinstance(raw, dict) else {}
+            if switch:
+                return await self.async_step_form()
             try:
                 mapping = _validate_yaml(raw)
             except vol.Invalid:
@@ -271,8 +322,11 @@ class ButtonActionsOptionsFlow(OptionsFlow):
                 result = self._apply(mapping, errors)
                 if result is not None:
                     return result
+            default = raw
+        else:
+            default = self._draft
         return self.async_show_form(
-            step_id="yaml", data_schema=_config_schema(raw), errors=errors
+            step_id="yaml", data_schema=_yaml_schema(default), errors=errors
         )
 
     def _apply(
@@ -282,7 +336,7 @@ class ButtonActionsOptionsFlow(OptionsFlow):
         new_trigger = mapping[CONF_TRIGGER_ENTITY]
         updates: dict[str, Any] = {
             "data": mapping,
-            "title": mapping.get(CONF_NAME) or new_trigger,
+            "title": mapping_title(mapping),
         }
         if new_trigger != self._entry.unique_id:
             if self._trigger_in_use(new_trigger):

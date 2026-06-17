@@ -10,7 +10,7 @@
       },
       "form": {
         "title": "Guided mapping",
-        "description": "Pick the trigger entity, mode and timeouts, then choose the lights to toggle per gesture. For anything beyond a toggle (scenes, scripts), paste a YAML action in the advanced field — it overrides the targets.",
+        "description": "Pick the trigger entity, mode and timeouts, then choose the lights to toggle per gesture. For anything beyond a toggle (scenes, scripts), tick \"Edit as YAML\" to switch to the YAML editor — your values carry over.",
         "data": {
           "name": "Name",
           "trigger_entity": "Trigger entity",
@@ -19,18 +19,17 @@
           "long_press_time": "Long press time (ms)",
           "fire_events": "Also fire button_actions_gesture events",
           "single_click_targets": "Single click → toggle these",
-          "single_click_action": "Single click action (YAML, overrides targets)",
           "double_click_targets": "Double click → toggle these",
-          "double_click_action": "Double click action (YAML, overrides targets)",
           "long_press_targets": "Long press → toggle these",
-          "long_press_action": "Long press action (YAML, overrides targets)"
+          "edit_as_yaml": "Edit as YAML instead"
         }
       },
       "yaml": {
         "title": "YAML mapping",
-        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. trigger_entity is required; set mode, timeouts, and per-gesture actions (single_click_action / double_click_action / long_press_action).",
+        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. trigger_entity is required. Tick \"Edit with fields\" to switch to the guided view instead.",
         "data": {
-          "config": "Mapping (YAML)"
+          "config": "Mapping (YAML)",
+          "edit_with_fields": "Edit with guided fields instead"
         }
       }
     },
@@ -52,7 +51,7 @@
       },
       "form": {
         "title": "Guided mapping",
-        "description": "Edit any field, including the trigger entity. Advanced YAML action fields are prefilled with the current action and override the targets.",
+        "description": "Edit any field, including the trigger entity. Tick \"Edit as YAML\" to switch to the YAML editor — your values carry over. Non-toggle actions are kept and remain editable in YAML.",
         "data": {
           "name": "Name",
           "trigger_entity": "Trigger entity",
@@ -61,18 +60,17 @@
           "long_press_time": "Long press time (ms)",
           "fire_events": "Also fire button_actions_gesture events",
           "single_click_targets": "Single click → toggle these",
-          "single_click_action": "Single click action (YAML, overrides targets)",
           "double_click_targets": "Double click → toggle these",
-          "double_click_action": "Double click action (YAML, overrides targets)",
           "long_press_targets": "Long press → toggle these",
-          "long_press_action": "Long press action (YAML, overrides targets)"
+          "edit_as_yaml": "Edit as YAML instead"
         }
       },
       "yaml": {
         "title": "YAML mapping",
-        "description": "Edit the whole mapping as YAML. Prefilled with the current configuration, so you can change timeouts/actions, copy it to another room, or change the trigger entity.",
+        "description": "Edit the whole mapping as YAML (prefilled with the current configuration). Tick \"Edit with fields\" to switch to the guided view instead.",
         "data": {
-          "config": "Mapping (YAML)"
+          "config": "Mapping (YAML)",
+          "edit_with_fields": "Edit with guided fields instead"
         }
       }
     },

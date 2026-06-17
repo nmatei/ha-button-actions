@@ -173,8 +173,18 @@ class ButtonActionController:
         self._detector.handle_transition(new_on)
 
     def _schedule(self, delay_s: float, cb: Callable[[], None]) -> Callable[[], None]:
-        """Arm a one-shot timer; return a cancel callable for the detector."""
-        return async_call_later(self.hass, delay_s, lambda _now: cb())
+        """Arm a one-shot timer; return a cancel callable for the detector.
+
+        The fired action must be a @callback so Home Assistant runs it on the
+        event loop. A plain function would be dispatched to a worker thread,
+        making the downstream hass.bus.async_fire / script run thread-unsafe.
+        """
+
+        @callback
+        def _fire(_now: Any) -> None:
+            cb()
+
+        return async_call_later(self.hass, delay_s, _fire)
 
     @callback
     def _on_gesture(self, gesture: str) -> None:
