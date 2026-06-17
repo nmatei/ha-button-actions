@@ -1,8 +1,12 @@
+<img src="brand/icon.png" alt="Button Actions" width="96" align="left" hspace="12"/>
+
 # Button Actions
 
 A Home Assistant custom integration (HACS-compatible) that turns ON/OFF state
-changes of any entity into **button gestures** — single click, double click,
-long press — and maps each gesture to actions and/or events.
+changes of any entity into **button gestures** — 👆 single click, ✌️ double
+click, ⏱️ long press — and maps each gesture to actions and/or events.
+
+<br clear="left"/>
 
 It is built for setups like a **Shelly Mini Gen 4** wired to a physical wall
 switch that should "toggle" some lights (e.g. Tapo LED strips). Instead of
@@ -15,10 +19,10 @@ YAML or in the UI.
 A click is not a state — it's a number of **ON/OFF transitions within a time
 window**:
 
-| Input mode  | One press is…              | Single click  | Double click  |
-|-------------|----------------------------|---------------|---------------|
-| `momentary` | `OFF→ON→OFF` (pulses back)  | 2 transitions | 4 transitions |
-| `toggle`    | `OFF→ON` (state holds)      | 1 transition  | 2 transitions |
+| Input mode  | One press is…              | 👆 Single click | ✌️ Double click |
+|-------------|----------------------------|-----------------|-----------------|
+| `momentary` | `OFF→ON→OFF` (pulses back)  | 2 transitions   | 4 transitions   |
+| `toggle`    | `OFF→ON` (state holds)      | 1 transition    | 2 transitions   |
 
 The detector only ever waits for gestures you actually configured (the
 **"don't wait"** optimization):
@@ -27,9 +31,9 @@ The detector only ever waits for gestures you actually configured (the
   no waiting for a possible double.
 - If no long-press action is set, the long-press timer is never armed.
 
-Long press fires the moment the hold exceeds `long_press_time` and cancels click
-detection. It is reliable in `momentary` mode; in `toggle` mode it is
-best-effort (it measures how long the input stays in the ON state).
+⏱️ Long press fires the moment the hold exceeds `long_press_time` and cancels
+click detection. It only works in `momentary` mode (the input must return to
+rest); in `toggle` mode the state just holds, so long press is disabled there.
 
 ## Installation
 
@@ -56,16 +60,22 @@ You can configure mappings via the **UI** or **YAML** (mix freely).
 
 ### UI (Settings → Devices & Services → + Add Integration → Button Actions)
 
-After choosing the integration you pick how to enter the mapping:
+A menu of buttons lets you pick how to enter the mapping (switch any time with
+the dialog's back arrow):
 
-- **Guided** — fields for trigger entity, mode, timeouts, fire-events, plus a
-  light/target picker per gesture. Each gesture also has an *advanced YAML
-  action* field for scenes/scripts/etc., which overrides the picker.
-- **YAML** — the whole mapping as one YAML object (same shape as below), so you
-  can paste/copy/tweak it in one place.
+- **Guided** — fields for trigger entity, mode, timeouts, fire-events, and a
+  light/target picker per gesture (👆 / ✌️ / ⏱️). Best for simple "toggle these
+  lights" mappings.
+- **YAML** — the whole mapping as one YAML object (same shape as below), for
+  scenes/scripts/templates, or to paste/copy/tweak it in one place.
 
-Use **Configure** on an existing entry to edit it the same way (the form/YAML is
-prefilled with the current config; the trigger entity can be changed too).
+Use **Configure** on an existing entry to edit it the same way (prefilled with
+the current config; the trigger entity can be changed too). Each entry in the
+list shows an emoji summary of what it does, e.g.:
+
+```
+🔘 Laurentiu (switch.shelly_laurentiu_input) · 👆 light.tapo_strip_1, light.tapo_strip_2 · ✌️ scene.movie
+```
 
 ### YAML (`configuration.yaml`)
 

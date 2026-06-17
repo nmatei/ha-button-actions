@@ -68,19 +68,20 @@ def _summarize_action(action: object) -> str:
 
 
 def mapping_title(mapping: dict) -> str:
-    """Build a one-line summary used as the config entry title.
+    """Build a one-line, emoji-decorated summary used as the config entry title.
 
-    Example: ``Laurentiu (switch.shelly) — click: light.a, light.b | 2×: scene.x``
+    Example:
+    ``🔘 Laurentiu (switch.shelly) · 👆 light.a, light.b · ✌️ scene.x``
     """
     name = mapping.get(CONF_NAME) or mapping[CONF_TRIGGER_ENTITY]
-    head = f"{name} ({mapping[CONF_TRIGGER_ENTITY]})"
+    head = f"🔘 {name} ({mapping[CONF_TRIGGER_ENTITY]})"
     segments = [
-        f"{label}: {_summarize_action(mapping[key])}"
-        for label, key in (
-            ("click", CONF_SINGLE_CLICK_ACTION),
-            ("2×", CONF_DOUBLE_CLICK_ACTION),
-            ("hold", CONF_LONG_PRESS_ACTION),
+        f"{emoji} {_summarize_action(mapping[key])}"
+        for emoji, key in (
+            ("👆", CONF_SINGLE_CLICK_ACTION),
+            ("✌️", CONF_DOUBLE_CLICK_ACTION),
+            ("⏱️", CONF_LONG_PRESS_ACTION),
         )
         if mapping.get(key)
     ]
-    return f"{head} — {' | '.join(segments)}" if segments else head
+    return f"{head} · {' · '.join(segments)}" if segments else head
