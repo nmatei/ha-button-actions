@@ -1,0 +1,42 @@
+# New-style configuration that replaces the two brittle automations in this
+# folder (Laurentiu double click - off-on.yaml + on-off.yaml).
+#
+# Add this to configuration.yaml. One entry per room — copy/paste and change
+# the entity ids. No more delay+condition hacks, no off-on/on-off duplication.
+
+button_actions:
+  # Laurentiu's room: physical wall switch toggles two Tapo LED strips.
+  - name: Laurentiu
+    trigger_entity: switch.shelly_laurentiu_input
+    mode: momentary            # momentary: press pulses OFF->ON->OFF (2 transitions)
+    click_window: 600          # ms to wait for a second press
+    fire_events: true          # also emit button_actions_gesture for custom wiring
+
+    single_click_action:
+      - service: light.toggle
+        target:
+          entity_id:
+            - light.tapo_laurentiu_1
+            - light.tapo_laurentiu_2
+
+    double_click_action:
+      - service: light.turn_off
+        target:
+          entity_id: all
+
+  # Another room, detached/toggle Shelly input that holds its state.
+  - name: Living room
+    trigger_entity: switch.shelly_living_input
+    mode: toggle               # toggle: each press flips and holds (1 transition)
+    single_click_action:
+      - service: light.toggle
+        target:
+          entity_id: light.living_strip
+    # Long press dims; long press is only "armed" because it is configured here.
+    long_press_time: 1200
+    long_press_action:
+      - service: light.turn_on
+        target:
+          entity_id: light.living_strip
+        data:
+          brightness_pct: 30

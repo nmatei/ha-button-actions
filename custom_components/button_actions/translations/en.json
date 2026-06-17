@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a button mapping",
+        "description": "Detect single/double clicks and long presses on a trigger entity and toggle target lights. For custom action sequences (scenes, scripts), use YAML configuration instead.",
+        "data": {
+          "name": "Name",
+          "trigger_entity": "Trigger entity",
+          "mode": "Input mode",
+          "click_window": "Click window (ms)",
+          "long_press_time": "Long press time (ms)",
+          "fire_events": "Also fire button_actions_gesture events",
+          "single_click_targets": "Single click → toggle these",
+          "double_click_targets": "Double click → toggle these",
+          "long_press_targets": "Long press → toggle these"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This trigger entity is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit button mapping",
+        "data": {
+          "name": "Name",
+          "mode": "Input mode",
+          "click_window": "Click window (ms)",
+          "long_press_time": "Long press time (ms)",
+          "fire_events": "Also fire button_actions_gesture events",
+          "single_click_targets": "Single click → toggle these",
+          "double_click_targets": "Double click → toggle these",
+          "long_press_targets": "Long press → toggle these"
+        }
+      }
+    }
+  },
+  "selector": {
+    "mode": {
+      "options": {
+        "momentary": "Momentary (pulses back, 2 transitions per press)",
+        "toggle": "Toggle (state holds, 1 transition per press)"
+      }
+    }
+  },
+  "services": {
+    "reload": {
+      "name": "Reload",
+      "description": "Reload all YAML-configured Button Actions mappings without restarting Home Assistant."
+    }
+  }
+}
