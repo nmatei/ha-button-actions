@@ -1,4 +1,4 @@
-<img src="custom_components/button_actions/brand/icon.png" alt="Button Actions" width="96" align="left" hspace="12"/>
+<img src="https://raw.githubusercontent.com/nmatei/ha-button-actions/master/custom_components/button_actions/brand/icon.png" alt="Button Actions" width="96" align="left" hspace="12"/>
 
 # Button Actions
 
@@ -37,7 +37,7 @@ rest); in `toggle` mode the state just holds, so long press is disabled there.
 
 ## Installation
 
-### Option A — HACS (custom repository)
+### HACS (custom repository)
 
 > Requires [HACS](https://hacs.xyz). The repo must be on GitHub (HACS installs
 > from a Git URL).
@@ -48,11 +48,6 @@ rest); in `toggle` mode the state just holds, so long press is disabled there.
    · **Type:** **Integration** → **Add**.
 4. Back in HACS, search **Button Actions** → open it → **Download**.
 5. **Restart Home Assistant** (Settings → System → Restart).
-
-### Option B — Manual
-
-1. Copy `custom_components/button_actions/` into `config/custom_components/`.
-2. **Restart Home Assistant.**
 
 ## Configuration
 
