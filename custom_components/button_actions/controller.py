@@ -180,8 +180,13 @@ class ButtonActionController:
 
         old_state = event.data.get("old_state")
         old_on = self._as_bool(old_state.state) if old_state else None
+        if old_on is None:
+            # No valid prior on/off state: this is startup state restoration or
+            # an availability change (unknown/unavailable -> on/off), NOT a
+            # button press. Ignoring it prevents spurious clicks on restart.
+            return
         if old_on == new_on:
-            # Not a real transition (e.g. attribute-only change).
+            # Not a real transition (e.g. an attribute-only change).
             return
 
         self._detector.handle_transition(new_on)
