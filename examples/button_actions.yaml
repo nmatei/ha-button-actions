@@ -40,3 +40,44 @@ button_actions:
           entity_id: light.living_strip
         data:
           brightness_pct: 30
+
+
+# ===========================================================================
+# Using the events
+# ---------------------------------------------------------------------------
+# With `fire_events: true` above, every detected gesture fires a
+# `button_actions_gesture` event carrying { entity_id, gesture, name }.
+# This lets you add custom behavior with ONE automation per device, instead of
+# the old off-on / on-off automation pairs.
+#
+# Add the block below under `automation:` in configuration.yaml. There is one
+# example per entity so you can see exactly how to match each trigger entity
+# and gesture (single_click | double_click | long_press).
+# ===========================================================================
+
+# automation:
+#   # --- Laurentiu's Shelly input (switch.shelly_laurentiu_input) ---
+#   - alias: Laurentiu double click → movie scene (via event)
+#     trigger:
+#       - platform: event
+#         event_type: button_actions_gesture
+#         event_data:
+#           entity_id: switch.shelly_laurentiu_input
+#           gesture: double_click
+#     action:
+#       - service: scene.turn_on
+#         target:
+#           entity_id: scene.laurentiu_movie
+#
+#   # --- Living room Shelly input (switch.shelly_living_input) ---
+#   - alias: Living room long press → notify (via event)
+#     trigger:
+#       - platform: event
+#         event_type: button_actions_gesture
+#         event_data:
+#           entity_id: switch.shelly_living_input
+#           gesture: long_press
+#     action:
+#       - service: notify.mobile_app_phone
+#         data:
+#           message: "Living room switch long-pressed"

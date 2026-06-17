@@ -70,7 +70,14 @@ def _build_data(user_input: dict[str, Any]) -> dict[str, Any]:
 
     for target_key, action_key in _TARGET_TO_ACTION:
         target = user_input.get(target_key)
-        if _has_targets(target):
+        action = user_input.get(action_key)
+
+        if action:
+            # An explicit YAML action sequence wins over the toggle targets.
+            data[action_key] = action
+            if _has_targets(target):
+                data[target_key] = target
+        elif _has_targets(target):
             data[target_key] = target
             data[action_key] = [
                 {"service": "homeassistant.toggle", "target": target}
@@ -124,10 +131,20 @@ def _schema(defaults: dict[str, Any]) -> vol.Schema:
         ): selector.BooleanSelector(),
     }
 
-    for target_key, _ in _TARGET_TO_ACTION:
+    for target_key, action_key in _TARGET_TO_ACTION:
         schema[
             vol.Optional(target_key, default=defaults.get(target_key, {}))
         ] = selector.TargetSelector()
+
+        # Advanced: a raw YAML action sequence. When editing, it is prefilled
+        # with the stored action so it can be copied/edited. Overrides targets.
+        action_default = defaults.get(action_key)
+        action_marker = (
+            vol.Optional(action_key, default=action_default)
+            if action_default
+            else vol.Optional(action_key)
+        )
+        schema[action_marker] = selector.ObjectSelector()
 
     return vol.Schema(schema)
 
@@ -164,21 +181,33 @@ class ButtonActionsOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            data = _build_data({**user_input, CONF_TRIGGER_ENTITY: self._entry.data[CONF_TRIGGER_ENTITY]})
-            # trigger_entity is fixed (it is the unique id); keep the original.
-            self.hass.config_entries.async_update_entry(self._entry, data=data)
-            return self.async_create_entry(title="", data={})
+            new_trigger = user_input[CONF_TRIGGER_ENTITY]
+            data = _build_data(user_input)
+            updates: dict[str, Any] = {
+                "data": data,
+                "title": data.get(CONF_NAME) or new_trigger,
+            }
+            if new_trigger != self._entry.unique_id:
+                # The trigger entity is the unique id; keep them in sync and
+                # guard against colliding with another configured mapping.
+                if self._trigger_in_use(new_trigger):
+                    errors[CONF_TRIGGER_ENTITY] = "already_configured"
+                else:
+                    updates["unique_id"] = new_trigger
 
-        defaults = {**self._entry.data}
+            if not errors:
+                self.hass.config_entries.async_update_entry(self._entry, **updates)
+                return self.async_create_entry(title="", data={})
+
+        defaults = {**self._entry.data, **(user_input or {})}
         return self.async_show_form(
-            step_id="init", data_schema=_schema_without_trigger(defaults)
+            step_id="init", data_schema=_schema(defaults), errors=errors
         )
 
-
-def _schema_without_trigger(defaults: dict[str, Any]) -> vol.Schema:
-    """Options schema: same as user but without the (immutable) trigger entity."""
-    full = _schema(defaults).schema
-    return vol.Schema(
-        {key: value for key, value in full.items() if key != CONF_TRIGGER_ENTITY}
-    )
+    def _trigger_in_use(self, trigger_entity: str) -> bool:
+        return any(
+            entry.unique_id == trigger_entity and entry.entry_id != self._entry.entry_id
+            for entry in self.hass.config_entries.async_entries(DOMAIN)
+        )
