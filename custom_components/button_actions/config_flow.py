@@ -1,16 +1,17 @@
 """Config and options flow for Button Actions.
 
-A mapping can be entered two ways, and you can switch between them at any time
-(a checkbox in each view jumps to the other, carrying your current values):
+A mapping can be entered two ways, chosen from a menu of buttons (instant, no
+submit). Use the form's back arrow to return to the menu and switch editors:
 
 * **Guided** — friendly fields (trigger entity, mode, timeouts) and a target
   picker per gesture (toggle these lights).
 * **YAML** — the whole mapping as one YAML object, same shape as the examples,
   for anything beyond a toggle (scenes, scripts, templates).
 
-Both paths produce the same normalized mapping (validated by MAPPING_SCHEMA).
-Actions that aren't a simple toggle are preserved when switching to the guided
-view (they just aren't shown as a target picker) and remain editable in YAML.
+Each editor has its own Submit that saves. Both produce the same normalized
+mapping (validated by MAPPING_SCHEMA). Actions that aren't a simple toggle are
+preserved when editing in the guided view (just not shown as a target picker)
+and remain editable in YAML.
 """
 
 from __future__ import annotations
@@ -49,9 +50,6 @@ from .schema import MAPPING_SCHEMA, mapping_title
 
 # The single field that holds the whole mapping in the YAML step.
 CONF_CONFIG = "config"
-# Checkboxes that switch between views.
-SWITCH_TO_YAML = "edit_as_yaml"
-SWITCH_TO_FORM = "edit_with_fields"
 
 # (action key, UI-only target-picker key) per gesture.
 _GESTURES = (
@@ -144,27 +142,23 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
             vol.Optional(target_key, default=target_default or {})
         ] = selector.TargetSelector()
 
-    schema[vol.Optional(SWITCH_TO_YAML, default=False)] = selector.BooleanSelector()
     return vol.Schema(schema)
 
 
 def _yaml_schema(default_value: Any) -> vol.Schema:
-    """Single whole-mapping YAML field, plus a switch-to-guided checkbox."""
+    """Single whole-mapping YAML field."""
     return vol.Schema(
-        {
-            vol.Required(CONF_CONFIG, default=default_value): selector.ObjectSelector(),
-            vol.Optional(SWITCH_TO_FORM, default=False): selector.BooleanSelector(),
-        }
+        {vol.Required(CONF_CONFIG, default=default_value): selector.ObjectSelector()}
     )
 
 
-def _merge_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
-    """Build a (loose) mapping draft from guided input, layered over ``base``.
+def _mapping_from_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
+    """Build a normalized, validated mapping from guided input over ``base``.
 
     Targets become a toggle action; gestures left empty keep whatever action the
-    base mapping already had (so non-toggle actions survive a view switch).
+    base mapping already had (so non-toggle actions survive editing here).
     """
-    draft: dict[str, Any] = {
+    mapping: dict[str, Any] = {
         CONF_MODE: user_input.get(CONF_MODE, base.get(CONF_MODE, DEFAULT_MODE)),
         CONF_CLICK_WINDOW: int(
             user_input.get(CONF_CLICK_WINDOW, base.get(CONF_CLICK_WINDOW, DEFAULT_CLICK_WINDOW))
@@ -180,21 +174,21 @@ def _merge_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict[str, A
     }
     name = (user_input.get(CONF_NAME) or "").strip()
     if name:
-        draft[CONF_NAME] = name
+        mapping[CONF_NAME] = name
     trigger = user_input.get(CONF_TRIGGER_ENTITY)
     if trigger:
-        draft[CONF_TRIGGER_ENTITY] = trigger
+        mapping[CONF_TRIGGER_ENTITY] = trigger
 
     for action_key, target_key in _GESTURES:
         target = user_input.get(target_key)
         if _has_targets(target):
-            draft[action_key] = [
+            mapping[action_key] = [
                 {"service": "homeassistant.toggle", "target": target}
             ]
         elif base.get(action_key):
-            draft[action_key] = base[action_key]
+            mapping[action_key] = base[action_key]
 
-    return draft
+    return MAPPING_SCHEMA(mapping)
 
 
 def _validate_yaml(raw: Any) -> dict[str, Any]:
@@ -211,7 +205,6 @@ class ButtonActionsConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        self._draft: dict[str, Any] = {}
         return self.async_show_menu(step_id="user", menu_options=["form", "yaml"])
 
     async def async_step_form(
@@ -219,43 +212,31 @@ class ButtonActionsConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            data = dict(user_input)
-            switch = data.pop(SWITCH_TO_YAML, False)
-            self._draft = _merge_form(data, self._draft)
-            if switch:
-                return await self.async_step_yaml()
             try:
-                mapping = MAPPING_SCHEMA(self._draft)
+                mapping = _mapping_from_form(user_input, {})
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 return await self._create(mapping)
-        defaults = user_input if user_input is not None else self._draft
         return self.async_show_form(
-            step_id="form", data_schema=_form_schema(defaults), errors=errors
+            step_id="form", data_schema=_form_schema(user_input or {}), errors=errors
         )
 
     async def async_step_yaml(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors: dict[str, str] = {}
+        raw: Any = TEMPLATE_MAPPING
         if user_input is not None:
-            switch = user_input.get(SWITCH_TO_FORM, False)
             raw = user_input.get(CONF_CONFIG)
-            self._draft = raw if isinstance(raw, dict) else {}
-            if switch:
-                return await self.async_step_form()
             try:
                 mapping = _validate_yaml(raw)
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 return await self._create(mapping)
-            default = raw
-        else:
-            default = self._draft or TEMPLATE_MAPPING
         return self.async_show_form(
-            step_id="yaml", data_schema=_yaml_schema(default), errors=errors
+            step_id="yaml", data_schema=_yaml_schema(raw), errors=errors
         )
 
     async def _create(self, mapping: dict[str, Any]) -> FlowResult:
@@ -274,7 +255,6 @@ class ButtonActionsOptionsFlow(OptionsFlow):
 
     def __init__(self, entry: ConfigEntry) -> None:
         self._entry = entry
-        self._draft: dict[str, Any] = dict(entry.data)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -286,20 +266,15 @@ class ButtonActionsOptionsFlow(OptionsFlow):
     ) -> FlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            data = dict(user_input)
-            switch = data.pop(SWITCH_TO_YAML, False)
-            self._draft = _merge_form(data, self._draft)
-            if switch:
-                return await self.async_step_yaml()
             try:
-                mapping = MAPPING_SCHEMA(self._draft)
+                mapping = _mapping_from_form(user_input, dict(self._entry.data))
             except vol.Invalid:
                 errors["base"] = "invalid_config"
             else:
                 result = self._apply(mapping, errors)
                 if result is not None:
                     return result
-        defaults = user_input if user_input is not None else self._draft
+        defaults = user_input if user_input is not None else dict(self._entry.data)
         return self.async_show_form(
             step_id="form", data_schema=_form_schema(defaults), errors=errors
         )
@@ -308,12 +283,9 @@ class ButtonActionsOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors: dict[str, str] = {}
+        raw: Any = dict(self._entry.data)
         if user_input is not None:
-            switch = user_input.get(SWITCH_TO_FORM, False)
             raw = user_input.get(CONF_CONFIG)
-            self._draft = raw if isinstance(raw, dict) else {}
-            if switch:
-                return await self.async_step_form()
             try:
                 mapping = _validate_yaml(raw)
             except vol.Invalid:
@@ -322,11 +294,8 @@ class ButtonActionsOptionsFlow(OptionsFlow):
                 result = self._apply(mapping, errors)
                 if result is not None:
                     return result
-            default = raw
-        else:
-            default = self._draft
         return self.async_show_form(
-            step_id="yaml", data_schema=_yaml_schema(default), errors=errors
+            step_id="yaml", data_schema=_yaml_schema(raw), errors=errors
         )
 
     def _apply(

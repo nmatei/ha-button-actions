@@ -126,6 +126,19 @@ def test_momentary_quick_release_does_not_long_press():
     assert gestures == [GESTURE_SINGLE]
 
 
+def test_momentary_single_with_all_gestures_active_is_single_not_long():
+    # All three gestures active (e.g. fire_events): a quick single press must
+    # still classify as single after the window, never as a long press.
+    detector, sched, gestures = make_detector(
+        {GESTURE_SINGLE, GESTURE_DOUBLE, GESTURE_LONG}
+    )
+    press_momentary(detector)
+    sched.advance(WINDOW)
+    assert gestures == [GESTURE_SINGLE]
+    sched.advance(LONG)
+    assert gestures == [GESTURE_SINGLE]
+
+
 # -- toggle mode --------------------------------------------------------------
 
 

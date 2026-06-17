@@ -106,6 +106,20 @@ class ButtonActionController:
         if self._fire_events:
             active |= {GESTURE_SINGLE, GESTURE_DOUBLE, GESTURE_LONG}
 
+        # Long press is detected by the input being *held* past a threshold.
+        # That only works when the input returns to rest after a press
+        # (momentary). In toggle mode the state simply holds after a single
+        # press, so arming a hold timer would turn every single click into a
+        # long press — never arm it there.
+        if self._transitions_per_click < 2:
+            if GESTURE_LONG in self._scripts:
+                _LOGGER.warning(
+                    "button_actions '%s': long_press is not supported in toggle "
+                    "mode (the input has no rest state); its action is ignored",
+                    self._name,
+                )
+            active.discard(GESTURE_LONG)
+
         self._detector = GestureDetector(
             transitions_per_click=self._transitions_per_click,
             click_window_s=self._click_window_s,

@@ -10,7 +10,7 @@
       },
       "form": {
         "title": "Guided mapping",
-        "description": "Pick the trigger entity, mode and timeouts, then choose the lights to toggle per gesture. For anything beyond a toggle (scenes, scripts), tick \"Edit as YAML\" to switch to the YAML editor — your values carry over.",
+        "description": "Pick the trigger entity, mode and timeouts, then choose the lights to toggle per gesture. To edit as YAML (scenes, scripts), use the back arrow and choose \"Edit as YAML\".",
         "data": {
           "name": "Name",
           "trigger_entity": "Trigger entity",
@@ -20,16 +20,14 @@
           "fire_events": "Also fire button_actions_gesture events",
           "single_click_targets": "Single click → toggle these",
           "double_click_targets": "Double click → toggle these",
-          "long_press_targets": "Long press → toggle these",
-          "edit_as_yaml": "Edit as YAML instead"
+          "long_press_targets": "Long press → toggle these"
         }
       },
       "yaml": {
         "title": "YAML mapping",
-        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. trigger_entity is required. Tick \"Edit with fields\" to switch to the guided view instead.",
+        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. trigger_entity is required. Use the back arrow to switch to guided fields.",
         "data": {
-          "config": "Mapping (YAML)",
-          "edit_with_fields": "Edit with guided fields instead"
+          "config": "Mapping (YAML)"
         }
       }
     },
@@ -51,7 +49,7 @@
       },
       "form": {
         "title": "Guided mapping",
-        "description": "Edit any field, including the trigger entity. Tick \"Edit as YAML\" to switch to the YAML editor — your values carry over. Non-toggle actions are kept and remain editable in YAML.",
+        "description": "Edit any field, including the trigger entity. To edit as YAML, use the back arrow and choose \"Edit as YAML\". Non-toggle actions are kept and remain editable in YAML.",
         "data": {
           "name": "Name",
           "trigger_entity": "Trigger entity",
@@ -61,16 +59,14 @@
           "fire_events": "Also fire button_actions_gesture events",
           "single_click_targets": "Single click → toggle these",
           "double_click_targets": "Double click → toggle these",
-          "long_press_targets": "Long press → toggle these",
-          "edit_as_yaml": "Edit as YAML instead"
+          "long_press_targets": "Long press → toggle these"
         }
       },
       "yaml": {
         "title": "YAML mapping",
-        "description": "Edit the whole mapping as YAML (prefilled with the current configuration). Tick \"Edit with fields\" to switch to the guided view instead.",
+        "description": "Edit the whole mapping as YAML (prefilled with the current configuration). Use the back arrow to switch to guided fields.",
         "data": {
-          "config": "Mapping (YAML)",
-          "edit_with_fields": "Edit with guided fields instead"
+          "config": "Mapping (YAML)"
         }
       }
     },
