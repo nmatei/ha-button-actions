@@ -3,14 +3,39 @@
     "step": {
       "user": {
         "title": "Add a button mapping",
-        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. Set the trigger entity, mode, timeouts, and the action(s) for each gesture (single_click_action / double_click_action / long_press_action). Set fire_events: true to also emit button_actions_gesture events.",
+        "menu_options": {
+          "form": "Guided (fill in fields)",
+          "yaml": "YAML (paste the whole mapping)"
+        }
+      },
+      "form": {
+        "title": "Guided mapping",
+        "description": "Pick the trigger entity, mode and timeouts, then choose the lights to toggle per gesture. For anything beyond a toggle (scenes, scripts), paste a YAML action in the advanced field — it overrides the targets.",
+        "data": {
+          "name": "Name",
+          "trigger_entity": "Trigger entity",
+          "mode": "Input mode",
+          "click_window": "Click window (ms)",
+          "long_press_time": "Long press time (ms)",
+          "fire_events": "Also fire button_actions_gesture events",
+          "single_click_targets": "Single click → toggle these",
+          "single_click_action": "Single click action (YAML, overrides targets)",
+          "double_click_targets": "Double click → toggle these",
+          "double_click_action": "Double click action (YAML, overrides targets)",
+          "long_press_targets": "Long press → toggle these",
+          "long_press_action": "Long press action (YAML, overrides targets)"
+        }
+      },
+      "yaml": {
+        "title": "YAML mapping",
+        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. trigger_entity is required; set mode, timeouts, and per-gesture actions (single_click_action / double_click_action / long_press_action).",
         "data": {
           "config": "Mapping (YAML)"
         }
       }
     },
     "error": {
-      "invalid_config": "Invalid mapping. A trigger_entity is required; check the YAML structure."
+      "invalid_config": "Invalid mapping. A trigger_entity is required; check the values/YAML structure."
     },
     "abort": {
       "already_configured": "This trigger entity is already configured."
@@ -20,14 +45,39 @@
     "step": {
       "init": {
         "title": "Edit button mapping",
-        "description": "Edit the whole mapping as YAML. It is prefilled with the current configuration, so you can change timeouts/actions, copy it to another room, or change the trigger entity.",
+        "menu_options": {
+          "form": "Guided (edit fields)",
+          "yaml": "YAML (edit the whole mapping)"
+        }
+      },
+      "form": {
+        "title": "Guided mapping",
+        "description": "Edit any field, including the trigger entity. Advanced YAML action fields are prefilled with the current action and override the targets.",
+        "data": {
+          "name": "Name",
+          "trigger_entity": "Trigger entity",
+          "mode": "Input mode",
+          "click_window": "Click window (ms)",
+          "long_press_time": "Long press time (ms)",
+          "fire_events": "Also fire button_actions_gesture events",
+          "single_click_targets": "Single click → toggle these",
+          "single_click_action": "Single click action (YAML, overrides targets)",
+          "double_click_targets": "Double click → toggle these",
+          "double_click_action": "Double click action (YAML, overrides targets)",
+          "long_press_targets": "Long press → toggle these",
+          "long_press_action": "Long press action (YAML, overrides targets)"
+        }
+      },
+      "yaml": {
+        "title": "YAML mapping",
+        "description": "Edit the whole mapping as YAML. Prefilled with the current configuration, so you can change timeouts/actions, copy it to another room, or change the trigger entity.",
         "data": {
           "config": "Mapping (YAML)"
         }
       }
     },
     "error": {
-      "invalid_config": "Invalid mapping. A trigger_entity is required; check the YAML structure.",
+      "invalid_config": "Invalid mapping. A trigger_entity is required; check the values/YAML structure.",
       "already_configured": "Another mapping already uses this trigger entity."
     }
   },
