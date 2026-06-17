@@ -6,8 +6,11 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
+import voluptuous as vol
+
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Context, Event, HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
@@ -72,16 +75,31 @@ class ButtonActionController:
         )
 
         # Build a Script per gesture that has an action sequence configured.
+        # The sequence must be normalized by cv.SCRIPT_SCHEMA before Script can
+        # run it (this turns `service:`/`action:` into the form the executor
+        # expects). YAML config is already validated; UI/legacy entries may hold
+        # raw dicts, so we (idempotently) validate here too.
         self._scripts: dict[str, Script] = {}
         for gesture, key in _ACTION_KEYS.items():
             sequence = config.get(key)
-            if sequence:
-                self._scripts[gesture] = Script(
-                    hass,
-                    sequence,
-                    f"{self._name} {gesture}",
-                    DOMAIN,
+            if not sequence:
+                continue
+            try:
+                sequence = cv.SCRIPT_SCHEMA(sequence)
+            except vol.Invalid as err:
+                _LOGGER.error(
+                    "button_actions '%s' has an invalid %s action, skipping: %s",
+                    self._name,
+                    gesture,
+                    err,
                 )
+                continue
+            self._scripts[gesture] = Script(
+                hass,
+                sequence,
+                f"{self._name} {gesture}",
+                DOMAIN,
+            )
 
         # A gesture is active if it has an action or events are enabled.
         active = set(self._scripts)

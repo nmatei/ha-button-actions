@@ -19,11 +19,6 @@ CONF_SINGLE_CLICK_ACTION: Final = "single_click_action"
 CONF_DOUBLE_CLICK_ACTION: Final = "double_click_action"
 CONF_LONG_PRESS_ACTION: Final = "long_press_action"
 
-# UI-only convenience keys (config flow target selectors) ---------------------
-CONF_SINGLE_CLICK_TARGETS: Final = "single_click_targets"
-CONF_DOUBLE_CLICK_TARGETS: Final = "double_click_targets"
-CONF_LONG_PRESS_TARGETS: Final = "long_press_targets"
-
 # Input modes -----------------------------------------------------------------
 MODE_MOMENTARY: Final = "momentary"
 MODE_TOGGLE: Final = "toggle"

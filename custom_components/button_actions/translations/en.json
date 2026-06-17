@@ -3,22 +3,14 @@
     "step": {
       "user": {
         "title": "Add a button mapping",
-        "description": "Detect single/double clicks and long presses on a trigger entity. Pick target lights to toggle per gesture, or paste a full YAML action sequence in the advanced fields.",
+        "description": "Paste or edit the whole mapping as YAML — same shape as the examples. Set the trigger entity, mode, timeouts, and the action(s) for each gesture (single_click_action / double_click_action / long_press_action). Set fire_events: true to also emit button_actions_gesture events.",
         "data": {
-          "name": "Name",
-          "trigger_entity": "Trigger entity",
-          "mode": "Input mode",
-          "click_window": "Click window (ms)",
-          "long_press_time": "Long press time (ms)",
-          "fire_events": "Also fire button_actions_gesture events",
-          "single_click_targets": "Single click → toggle these",
-          "single_click_action": "Single click action (YAML, overrides targets)",
-          "double_click_targets": "Double click → toggle these",
-          "double_click_action": "Double click action (YAML, overrides targets)",
-          "long_press_targets": "Long press → toggle these",
-          "long_press_action": "Long press action (YAML, overrides targets)"
+          "config": "Mapping (YAML)"
         }
       }
+    },
+    "error": {
+      "invalid_config": "Invalid mapping. A trigger_entity is required; check the YAML structure."
     },
     "abort": {
       "already_configured": "This trigger entity is already configured."
@@ -28,24 +20,14 @@
     "step": {
       "init": {
         "title": "Edit button mapping",
-        "description": "Edit any field, including the trigger entity. The advanced YAML fields are prefilled with the current action so you can copy or change it; a YAML action overrides the toggle targets.",
+        "description": "Edit the whole mapping as YAML. It is prefilled with the current configuration, so you can change timeouts/actions, copy it to another room, or change the trigger entity.",
         "data": {
-          "name": "Name",
-          "trigger_entity": "Trigger entity",
-          "mode": "Input mode",
-          "click_window": "Click window (ms)",
-          "long_press_time": "Long press time (ms)",
-          "fire_events": "Also fire button_actions_gesture events",
-          "single_click_targets": "Single click → toggle these",
-          "single_click_action": "Single click action (YAML, overrides targets)",
-          "double_click_targets": "Double click → toggle these",
-          "double_click_action": "Double click action (YAML, overrides targets)",
-          "long_press_targets": "Long press → toggle these",
-          "long_press_action": "Long press action (YAML, overrides targets)"
+          "config": "Mapping (YAML)"
         }
       }
     },
     "error": {
+      "invalid_config": "Invalid mapping. A trigger_entity is required; check the YAML structure.",
       "already_configured": "Another mapping already uses this trigger entity."
     }
   },
