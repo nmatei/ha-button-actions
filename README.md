@@ -14,7 +14,7 @@ writing two brittle automations per gesture (one for `off-on`, one for `on-off`,
 with `delay` + state-condition hacks), you describe each room **once** — in
 YAML or in the UI.
 
-## How it works
+## ⚙️ How it works
 
 A click is not a state — it's a number of **ON/OFF transitions within a time
 window**:
@@ -35,7 +35,7 @@ The detector only ever waits for gestures you actually configured (the
 click detection. It only works in `momentary` mode (the input must return to
 rest); in `toggle` mode the state just holds, so long press is disabled there.
 
-## Installation
+## 📥 Installation
 
 ### HACS (custom repository)
 
@@ -49,7 +49,7 @@ rest); in `toggle` mode the state just holds, so long press is disabled there.
 4. Back in HACS, search **Button Actions** → open it → **Download**.
 5. **Restart Home Assistant** (Settings → System → Restart).
 
-## Configuration
+## 🛠️ Configuration
 
 You can configure mappings via the **UI** or **YAML** (mix freely).
 
@@ -66,11 +66,20 @@ the dialog's back arrow):
 
 Use **Configure** on an existing entry to edit it the same way (prefilled with
 the current config; the trigger entity can be changed too). Each entry in the
-list shows an emoji summary of what it does, e.g.:
+list shows an emoji summary of what it does, using the **friendly names** of the
+trigger and target entities (falling back to the raw entity id when a name can't
+be resolved), e.g.:
 
 ```
-🔘 Laurentiu (switch.shelly_laurentiu_input) · 👆 light.tapo_strip_1, light.tapo_strip_2 · ✌️ scene.movie
+🔘 Laurentiu [ Shelly Laurentiu Input ] · 👆 Tapo Strip 1, Tapo Strip 2 · ✌️ Movie
 ```
+
+The summary is `🔘 {name} [ {trigger} ] · {gesture} {targets}`. It refreshes on
+setup/reload (and once Home Assistant has fully started, so target names
+resolve). Using **⋮ → Rename** on an entry edits the `name` part only — whatever
+you type becomes the mapping's `name` and the full summary is regenerated from
+it. (The rename dialog pre-fills with the current full title; just replace the
+name, or use **Configure → Guided**, which has a dedicated Name field.)
 
 ### YAML (`configuration.yaml`)
 
@@ -95,14 +104,14 @@ button_actions:
     long_press_action: []      # optional
 ```
 
-Copy the block for each room and change the entity ids. A full example with two
-rooms and event automations is in
+Copy the block for each trigger (you can have several per room) and change the
+entity ids. A full example with multiple triggers and event automations is in
 [examples/button_actions.yaml](examples/button_actions.yaml).
 
 After editing YAML, call the **`button_actions.reload`** service (Developer
 Tools → Actions) — no restart needed.
 
-### Options
+### 🎛️ Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -116,7 +125,7 @@ Tools → Actions) — no restart needed.
 | `physical_only` | `false` | Only react to physical presses; ignore changes triggered by a Home Assistant user or automation/script |
 | `single_click_action` / `double_click_action` / `long_press_action` | — | Action sequences to run |
 
-## Events
+## 📡 Events
 
 With `fire_events: true`, each gesture fires a `button_actions_gesture` event:
 
@@ -144,7 +153,7 @@ automation:
         target: { entity_id: scene.laurentiu_movie }
 ```
 
-## Development / testing
+## 🧪 Development / testing
 
 The gesture state machine is pure Python (no HA import) and unit-tested:
 
