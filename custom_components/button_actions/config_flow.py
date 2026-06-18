@@ -103,7 +103,13 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
         return value if value is not None else fallback
 
     schema: dict[Any, Any] = {
-        vol.Optional(CONF_NAME, default=d(CONF_NAME, "")): selector.TextSelector(),
+        # Prefill via ``suggested_value`` (display only), NOT ``default``: a
+        # ``default`` is re-injected by voluptuous when the cleared field omits
+        # the key on submit, so the old name would silently come back and could
+        # never be removed from the UI (see the target pickers below).
+        vol.Optional(
+            CONF_NAME, description={"suggested_value": d(CONF_NAME, "")}
+        ): selector.TextSelector(),
         vol.Required(
             CONF_TRIGGER_ENTITY, default=d(CONF_TRIGGER_ENTITY, vol.UNDEFINED)
         ): selector.EntitySelector(

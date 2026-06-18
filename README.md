@@ -6,6 +6,14 @@ A Home Assistant custom integration (HACS-compatible) that turns ON/OFF state
 changes of any entity into **button gestures** — 👆 single click, ✌️ double
 click, ⏱️ long press — and maps each gesture to actions and/or events.
 
+Use it to **enhance plain light triggers**: a single wall switch or button can do
+far more than just turn a light on and off. Get a second and third action for
+free — single click toggles the lights, double click sets a scene or dims them,
+long press turns everything off — all from hardware you already have, without
+adding extra switches. It centralizes the messy timing logic in **one place**,
+so you define each trigger once instead of scattering fragile per-gesture
+automations across your config.
+
 <br clear="left"/>
 
 It is built for setups like a **Shelly Mini Gen 4** wired to a physical wall
