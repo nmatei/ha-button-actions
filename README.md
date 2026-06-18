@@ -11,7 +11,7 @@ click, ⏱️ long press — and maps each gesture to actions and/or events.
 It is built for setups like a **Shelly Mini Gen 4** wired to a physical wall
 switch that should "toggle" some lights (e.g. Tapo LED strips). Instead of
 writing two brittle automations per gesture (one for `off-on`, one for `on-off`,
-with `delay` + state-condition hacks), you describe each room **once** — in
+with `delay` + state-condition hacks), you describe each trigger **once** — in
 YAML or in the UI.
 
 ## ⚙️ How it works
@@ -71,10 +71,12 @@ trigger and target entities (falling back to the raw entity id when a name can't
 be resolved), e.g.:
 
 ```
-🔘 Laurentiu [ Shelly Laurentiu Input ] · 👆 Tapo Strip 1, Tapo Strip 2 · ✌️ Movie
+Laurentiu 🔘 [ Shelly Laurentiu Input ] ⇒ 👆 Tapo Strip 1, Tapo Strip 2 · ✌️ Movie
 ```
 
-The summary is `🔘 {name} [ {trigger} ] · {gesture} {targets}`. It refreshes on
+The summary is `{name} 🔘 [ {trigger} ] ⇒ {gesture} {targets} · {gesture} {targets}`
+— the ⇒ reads as "trigger ⇒ its actions", and `·` separates the gesture actions.
+It refreshes on
 setup/reload (and once Home Assistant has fully started, so target names
 resolve). Using **⋮ → Rename** on an entry edits the `name` part only — whatever
 you type becomes the mapping's `name` and the full summary is regenerated from

@@ -58,7 +58,8 @@ A click = **number of ON/OFF transitions within a time window**, not a state.
   one object). Both validate through `MAPPING_SCHEMA`.
 - `schema.py` — `MAPPING_SCHEMA` (shared by YAML setup and the config flow) and
   `mapping_title()` (the emoji entry-title summary). `mapping_title(mapping, hass)`
-  renders `🔘 {name} [ {trigger} ] · {emoji} {targets}`, where the trigger and each
+  renders `{name} 🔘 [ {trigger} ] ⇒ {emoji} {targets} · …` (⇒ after the trigger,
+  `·` between gesture actions), where the trigger and each
   action target show their entity **friendly name** (resolved via `hass.states`),
   falling back to the raw entity id when `hass` is omitted or the entity isn't
   loaded yet. Because of that fallback, `__init__.py` refreshes titles for **all**

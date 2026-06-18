@@ -1,8 +1,9 @@
 # New-style configuration that replaces the two brittle automations in this
 # folder (Laurentiu double click - off-on.yaml + on-off.yaml).
 #
-# Add this to configuration.yaml. One entry per room — copy/paste and change
-# the entity ids. No more delay+condition hacks, no off-on/on-off duplication.
+# Add this to configuration.yaml. One entry per trigger (you can have several
+# per room) — copy/paste and change the entity ids. No more delay+condition
+# hacks, no off-on/on-off duplication.
 
 button_actions:
   # Laurentiu's room: physical wall switch toggles two Tapo LED strips.

@@ -55,13 +55,16 @@ MAPPING_SCHEMA = vol.Schema(
 
 _TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
 
-# Title head format: ``🔘 {name} [ {trigger} ]`` (or ``🔘 {trigger}`` with no
-# name). These markers are shared by ``mapping_title`` and its inverse,
-# ``name_from_title``, so the round-trip stays consistent.
-_TITLE_PREFIX = "🔘 "
+# Title head format: ``{name} 🔘 [ {trigger} ]`` so the entry leads with the
+# user's name (or ``🔘 {trigger}`` when no name is set). These markers are shared
+# by ``mapping_title`` and its inverse, ``name_from_title``, so the round-trip
+# stays consistent.
+_BUTTON = "🔘"
+_TITLE_PREFIX = f"{_BUTTON} "  # no-name head: ``🔘 {trigger}``
 _TRIGGER_OPEN = " [ "
 _TRIGGER_CLOSE = " ]"
-_SEGMENT_SEP = " · "
+_TRIGGER_SEP = " ⇒ "  # trigger ⇒ its gesture actions
+_ACTION_SEP = " · "  # between individual gesture actions
 
 
 def _entity_name(hass: "HomeAssistant | None", entity_id: str) -> str:
@@ -102,12 +105,12 @@ def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
     the entity is loaded, falling back to the raw id otherwise.
 
     Example:
-    ``🔘 Laurentiu [ Shelly Switch ] · 👆 Light A, Light B · ✌️ scene.x``
+    ``Laurentiu 🔘 [ Shelly Switch ] ⇒ 👆 Light A, Light B · ✌️ scene.x``
     """
     trigger = _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
     name = mapping.get(CONF_NAME)
     if name:
-        head = f"{_TITLE_PREFIX}{name}{_TRIGGER_OPEN}{trigger}{_TRIGGER_CLOSE}"
+        head = f"{name} {_BUTTON}{_TRIGGER_OPEN}{trigger}{_TRIGGER_CLOSE}"
     else:
         head = f"{_TITLE_PREFIX}{trigger}"
     segments = [
@@ -119,7 +122,7 @@ def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
         )
         if mapping.get(key)
     ]
-    return f"{head}{_SEGMENT_SEP}{' · '.join(segments)}" if segments else head
+    return f"{head}{_TRIGGER_SEP}{_ACTION_SEP.join(segments)}" if segments else head
 
 
 def name_from_title(
@@ -132,17 +135,16 @@ def name_from_title(
     as the configured ``name``. Returns ``None`` when the title carries no
     custom name (i.e. it's just the trigger), so the caller can clear it.
     """
-    text = title.strip()
-    if text.startswith(_TITLE_PREFIX.strip()):
-        text = text[len(_TITLE_PREFIX.strip()) :].strip()
     # Keep only the head; drop any gesture summary.
-    text = text.split(_SEGMENT_SEP, 1)[0].strip()
-    if "[" in text:
-        # ``Name [ Trigger ]`` → the part before the bracket is the name.
-        return text.split("[", 1)[0].strip() or None
-    # No bracket → the head was just the trigger (no custom name). Treat the
-    # typed text as a new name unless it still equals the trigger's display.
+    head = title.split(_TRIGGER_SEP, 1)[0]
+    if _BUTTON in head:
+        # ``{name} 🔘 [ {trigger} ]`` → the name is everything before the 🔘.
+        # ``🔘 {trigger}`` (no name) yields an empty leading part → None.
+        return head.split(_BUTTON, 1)[0].strip() or None
+    # No 🔘 marker → the user cleared the decoration and typed a plain name.
+    # Treat it as the new name unless it still equals the trigger's display.
+    name = head.strip()
     trigger = _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
-    if not text or text == trigger:
+    if not name or name == trigger:
         return None
-    return text
+    return name

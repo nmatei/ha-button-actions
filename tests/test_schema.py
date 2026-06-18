@@ -50,7 +50,27 @@ def test_uses_friendly_names_when_available():
         CONF_TRIGGER_ENTITY: "switch.salus_x",
         CONF_DOUBLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
-    assert mapping_title(mapping, hass) == "🔘 Kitchen Switch · ✌️ LED Kitchen"
+    assert mapping_title(mapping, hass) == "🔘 Kitchen Switch ⇒ ✌️ LED Kitchen"
+
+
+def test_multiple_actions_use_dot_between_and_arrow_after_trigger():
+    hass = _FakeHass(
+        {
+            "switch.salus_x": _State("Kitchen Switch"),
+            "light.led_kitchen": _State("LED Kitchen"),
+            "light.lamp": _State("Lamp"),
+        }
+    )
+    mapping = {
+        CONF_NAME: "Kitchen",
+        CONF_TRIGGER_ENTITY: "switch.salus_x",
+        CONF_SINGLE_CLICK_ACTION: _toggle("light.led_kitchen"),
+        CONF_DOUBLE_CLICK_ACTION: _toggle("light.lamp"),
+    }
+    assert (
+        mapping_title(mapping, hass)
+        == "Kitchen 🔘 [ Kitchen Switch ] ⇒ 👆 LED Kitchen · ✌️ Lamp"
+    )
 
 
 def test_falls_back_to_entity_id_when_unknown():
@@ -59,13 +79,13 @@ def test_falls_back_to_entity_id_when_unknown():
         CONF_TRIGGER_ENTITY: "switch.salus_x",
         CONF_DOUBLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
-    assert mapping_title(mapping, hass) == "🔘 switch.salus_x · ✌️ light.led_kitchen"
+    assert mapping_title(mapping, hass) == "🔘 switch.salus_x ⇒ ✌️ light.led_kitchen"
 
 
-def test_explicit_name_keeps_trigger_in_brackets():
+def test_explicit_name_leads_then_button_and_trigger():
     hass = _FakeHass({"switch.salus_x": _State("Kitchen Switch")})
     mapping = {CONF_NAME: "My Custom Name", CONF_TRIGGER_ENTITY: "switch.salus_x"}
-    assert mapping_title(mapping, hass) == "🔘 My Custom Name [ Kitchen Switch ]"
+    assert mapping_title(mapping, hass) == "My Custom Name 🔘 [ Kitchen Switch ]"
 
 
 def test_no_hass_uses_ids():
@@ -73,7 +93,7 @@ def test_no_hass_uses_ids():
         CONF_TRIGGER_ENTITY: "switch.salus_x",
         CONF_SINGLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
-    assert mapping_title(mapping) == "🔘 switch.salus_x · 👆 light.led_kitchen"
+    assert mapping_title(mapping) == "🔘 switch.salus_x ⇒ 👆 light.led_kitchen"
 
 
 # --- name_from_title: inverse used when a user renames the entry ---
@@ -86,25 +106,25 @@ def _trigger_mapping():
 
 
 def test_name_from_full_title():
-    title = "🔘 My Name [ Kitchen Switch ] · ✌️ LED Kitchen"
+    title = "My Name 🔘 [ Kitchen Switch ] ⇒ ✌️ LED Kitchen"
     assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) == "My Name"
 
 
 def test_name_from_in_place_edit():
-    title = "🔘 Kitchen [ Kitchen Switch ] · ✌️ LED Kitchen"
+    title = "Kitchen 🔘 [ Kitchen Switch ] ⇒ ✌️ LED Kitchen"
     assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) == "Kitchen"
 
 
-def test_name_from_fresh_typed_name_without_brackets():
+def test_name_from_fresh_typed_name_without_decoration():
     # User cleared the field and typed a plain name.
     assert name_from_title("Kitchen", _trigger_mapping(), _TRIGGER_HASS) == "Kitchen"
 
 
 def test_name_equal_to_trigger_clears_name():
     # Head was just the trigger and stayed that way → no custom name.
-    title = "🔘 Kitchen Switch · ✌️ LED Kitchen"
+    title = "🔘 Kitchen Switch ⇒ ✌️ LED Kitchen"
     assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) is None
 
 
 def test_empty_name_clears_name():
-    assert name_from_title("🔘  [ Kitchen Switch ]", _trigger_mapping(), _TRIGGER_HASS) is None
+    assert name_from_title("🔘 [ Kitchen Switch ]", _trigger_mapping(), _TRIGGER_HASS) is None
