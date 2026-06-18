@@ -55,6 +55,50 @@ MAPPING_SCHEMA = vol.Schema(
 
 _TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
 
+
+def expand_run_targets(sequence: object) -> object:
+    """Rewrite toggle steps so ``automation`` targets are *run*, not toggled.
+
+    The guided target picker (and simple YAML) maps every target to
+    ``homeassistant.toggle``, which is right for a light or switch. But an
+    automation has no on/off state to flip in the useful sense: toggling it
+    switches its *enabled* status instead of executing it. So we split any
+    ``automation.*`` entity out of a toggle step into a dedicated
+    ``automation.trigger`` step (running it on press), leaving the other targets
+    on the original toggle. Non-toggle steps and non-entity targets (device/area)
+    pass through untouched, so this is safe to apply to any sequence.
+    """
+    if not isinstance(sequence, list):
+        return sequence
+    expanded: list = []
+    for step in sequence:
+        target = step.get("target") if isinstance(step, dict) else None
+        service = (
+            step.get("service") or step.get("action") if isinstance(step, dict) else None
+        )
+        if service not in _TOGGLE_SERVICES or not isinstance(target, dict):
+            expanded.append(step)
+            continue
+        entities = target.get("entity_id")
+        if isinstance(entities, str):
+            entities = [entities]
+        automations = [e for e in entities or () if str(e).startswith("automation.")]
+        if not automations:
+            expanded.append(step)
+            continue
+        others = [e for e in entities if not str(e).startswith("automation.")]
+        # Keep non-automation entities (and any device/area targets) toggling;
+        # drop the toggle step entirely if automations were its only target.
+        keep_target = {k: v for k, v in target.items() if k != "entity_id"}
+        if others:
+            keep_target["entity_id"] = others
+        if keep_target:
+            expanded.append({**step, "target": keep_target})
+        expanded.append(
+            {"service": "automation.trigger", "target": {"entity_id": automations}}
+        )
+    return expanded
+
 # Title head format: ``{name} 🔘 [ {trigger} ]`` so the entry leads with the
 # user's name (or ``🔘 {trigger}`` when no name is set). These markers are shared
 # by ``mapping_title`` and its inverse, ``name_from_title``, so the round-trip

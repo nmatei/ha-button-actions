@@ -12,7 +12,7 @@ from button_actions.const import (
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRIGGER_ENTITY,
 )
-from button_actions.schema import mapping_title, name_from_title
+from button_actions.schema import expand_run_targets, mapping_title, name_from_title
 
 
 class _State:
@@ -94,6 +94,53 @@ def test_no_hass_uses_ids():
         CONF_SINGLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
     assert mapping_title(mapping) == "🔘 switch.salus_x ⇒ 👆 light.led_kitchen"
+
+
+# --- expand_run_targets: automations are triggered, not toggled ---
+
+
+def test_expand_splits_automation_out_of_mixed_toggle():
+    seq = [
+        {
+            "service": "homeassistant.toggle",
+            "target": {"entity_id": ["switch.priza_bec_tapo", "automation.test"]},
+        }
+    ]
+    assert expand_run_targets(seq) == [
+        {"service": "homeassistant.toggle", "target": {"entity_id": ["switch.priza_bec_tapo"]}},
+        {"service": "automation.trigger", "target": {"entity_id": ["automation.test"]}},
+    ]
+
+
+def test_expand_replaces_toggle_when_only_automations():
+    seq = [{"service": "homeassistant.toggle", "target": {"entity_id": "automation.test"}}]
+    assert expand_run_targets(seq) == [
+        {"service": "automation.trigger", "target": {"entity_id": ["automation.test"]}}
+    ]
+
+
+def test_expand_keeps_device_and_area_targets_on_toggle():
+    seq = [
+        {
+            "service": "homeassistant.toggle",
+            "target": {"entity_id": ["automation.test"], "area_id": "kitchen"},
+        }
+    ]
+    assert expand_run_targets(seq) == [
+        {"service": "homeassistant.toggle", "target": {"area_id": "kitchen"}},
+        {"service": "automation.trigger", "target": {"entity_id": ["automation.test"]}},
+    ]
+
+
+def test_expand_leaves_plain_toggles_untouched():
+    seq = [{"service": "light.toggle", "target": {"entity_id": ["light.led_kitchen"]}}]
+    assert expand_run_targets(seq) == seq
+
+
+def test_expand_ignores_non_toggle_services():
+    # An explicit automation.turn_off should not be rewritten.
+    seq = [{"service": "automation.turn_off", "target": {"entity_id": "automation.test"}}]
+    assert expand_run_targets(seq) == seq
 
 
 # --- name_from_title: inverse used when a user renames the entry ---

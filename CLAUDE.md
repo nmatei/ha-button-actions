@@ -113,6 +113,12 @@ action. Events: `button_actions_gesture` with `{entity_id, gesture, name}`.
   the existing action **only if it's not a simple toggle** (scenes/scripts the
   picker can't show). A cleared toggle is removed.
 - **Long press only in `momentary`** (see Core model).
+- **Automations are run, not toggled**: the target picker / simple YAML emits
+  `homeassistant.toggle`, which on an `automation.*` entity flips its *enabled*
+  state. `schema.expand_run_targets()` (applied in `controller.py` before
+  `cv.SCRIPT_SCHEMA`) splits automation entities out of a toggle step into an
+  `automation.trigger` step so a press *runs* the automation. Non-toggle steps,
+  device/area targets, and other domains pass through untouched.
 
 ## Development
 

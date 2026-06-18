@@ -45,6 +45,7 @@ from .const import (
     TRANSITIONS_PER_CLICK_BY_MODE,
 )
 from .gesture import GestureDetector
+from .schema import expand_run_targets
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -89,6 +90,9 @@ class ButtonActionController:
             sequence = config.get(key)
             if not sequence:
                 continue
+            # Targeting an automation should *run* it, not toggle its enabled
+            # state; expand the toggle the picker/YAML produced accordingly.
+            sequence = expand_run_targets(sequence)
             try:
                 sequence = cv.SCRIPT_SCHEMA(sequence)
             except vol.Invalid as err:
