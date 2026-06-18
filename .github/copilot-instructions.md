@@ -57,7 +57,9 @@ A click = **number of ON/OFF transitions within a time window**, not a state.
   **Guided** (fields + per-gesture target picker) and **YAML** (whole mapping as
   one object). Both validate through `MAPPING_SCHEMA`.
 - `schema.py` — `MAPPING_SCHEMA` (shared by YAML setup and the config flow) and
-  `mapping_title()` (the emoji entry-title summary).
+  `mapping_title()` (the emoji entry-title summary). `mapping_title(mapping, hass)`
+  shows entity **friendly names** (resolved via `hass.states`), falling back to
+  the raw entity id when `hass` is omitted or the entity isn't loaded yet.
 - `__init__.py` — YAML setup (list under `button_actions:`), `button_actions.reload`
   service, and config-entry lifecycle. Refreshes each entry's title on setup.
 - `const.py` — keys, defaults, gesture constants, event name.

@@ -90,7 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Keep the entry title a fresh summary of what the mapping does. Done before
     # the update listener is attached so it doesn't trigger an extra reload.
-    title = mapping_title(mapping)
+    title = mapping_title(mapping, hass)
     if entry.title != title:
         hass.config_entries.async_update_entry(entry, title=title)
 

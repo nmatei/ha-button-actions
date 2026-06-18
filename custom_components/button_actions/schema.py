@@ -6,9 +6,14 @@ single mapping pasted/edited as YAML), so both paths validate identically.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import voluptuous as vol
 
 from homeassistant.helpers import config_validation as cv
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_CLICK_WINDOW,
@@ -51,7 +56,18 @@ MAPPING_SCHEMA = vol.Schema(
 _TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
 
 
-def _summarize_action(action: object) -> str:
+def _entity_name(hass: "HomeAssistant | None", entity_id: str) -> str:
+    """Friendly name for an entity, falling back to its id."""
+    if hass is not None:
+        state = hass.states.get(entity_id)
+        if state:
+            name = state.attributes.get("friendly_name")
+            if name:
+                return name
+    return entity_id
+
+
+def _summarize_action(action: object, hass: "HomeAssistant | None" = None) -> str:
     """Short, human description of a gesture's action sequence."""
     if not (isinstance(action, list) and action and isinstance(action[0], dict)):
         return "action"
@@ -62,7 +78,8 @@ def _summarize_action(action: object) -> str:
     if entities:
         if isinstance(entities, str):
             entities = [entities]
-        summary = ", ".join(entities[:2])
+        names = [_entity_name(hass, entity_id) for entity_id in entities[:2]]
+        summary = ", ".join(names)
         if len(entities) > 2:
             summary += f" +{len(entities) - 2}"
         return summary if service in _TOGGLE_SERVICES else f"{service} → {summary}"
@@ -70,16 +87,19 @@ def _summarize_action(action: object) -> str:
     return f"{service}{suffix}"
 
 
-def mapping_title(mapping: dict) -> str:
+def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
     """Build a one-line, emoji-decorated summary used as the config entry title.
 
+    Entity ids are shown as their friendly names when ``hass`` is provided and
+    the entity is loaded, falling back to the raw id otherwise.
+
     Example:
-    ``🔘 Laurentiu (switch.shelly) · 👆 light.a, light.b · ✌️ scene.x``
+    ``🔘 Laurentiu · 👆 Light A, Light B · ✌️ scene.x``
     """
-    name = mapping.get(CONF_NAME) or mapping[CONF_TRIGGER_ENTITY]
-    head = f"🔘 {name} ({mapping[CONF_TRIGGER_ENTITY]})"
+    name = mapping.get(CONF_NAME) or _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
+    head = f"🔘 {name}"
     segments = [
-        f"{emoji} {_summarize_action(mapping[key])}"
+        f"{emoji} {_summarize_action(mapping[key], hass)}"
         for emoji, key in (
             ("👆", CONF_SINGLE_CLICK_ACTION),
             ("✌️", CONF_DOUBLE_CLICK_ACTION),

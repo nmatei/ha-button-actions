@@ -259,7 +259,9 @@ class ButtonActionsConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _create(self, mapping: dict[str, Any]) -> FlowResult:
         await self.async_set_unique_id(mapping[CONF_TRIGGER_ENTITY])
         self._abort_if_unique_id_configured()
-        return self.async_create_entry(title=mapping_title(mapping), data=mapping)
+        return self.async_create_entry(
+            title=mapping_title(mapping, self.hass), data=mapping
+        )
 
     @staticmethod
     @callback
@@ -322,7 +324,7 @@ class ButtonActionsOptionsFlow(OptionsFlow):
         new_trigger = mapping[CONF_TRIGGER_ENTITY]
         updates: dict[str, Any] = {
             "data": mapping,
-            "title": mapping_title(mapping),
+            "title": mapping_title(mapping, self.hass),
         }
         if new_trigger != self._entry.unique_id:
             if self._trigger_in_use(new_trigger):
