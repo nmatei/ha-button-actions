@@ -42,7 +42,7 @@ def _toggle(entity_id: str) -> list:
 def test_uses_friendly_names_when_available():
     hass = _FakeHass(
         {
-            "switch.salus_x": _State("Kitchen Light trigger"),
+            "switch.salus_x": _State("Kitchen Switch"),
             "light.led_kitchen": _State("LED Kitchen"),
         }
     )
@@ -50,7 +50,7 @@ def test_uses_friendly_names_when_available():
         CONF_TRIGGER_ENTITY: "switch.salus_x",
         CONF_DOUBLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
-    assert mapping_title(mapping, hass) == "🔘 Kitchen Light trigger · ✌️ LED Kitchen"
+    assert mapping_title(mapping, hass) == "🔘 Kitchen Switch · ✌️ LED Kitchen"
 
 
 def test_falls_back_to_entity_id_when_unknown():
@@ -62,10 +62,10 @@ def test_falls_back_to_entity_id_when_unknown():
     assert mapping_title(mapping, hass) == "🔘 switch.salus_x · ✌️ light.led_kitchen"
 
 
-def test_explicit_name_wins_over_friendly_name():
-    hass = _FakeHass({"switch.salus_x": _State("Friendly Trigger")})
+def test_explicit_name_keeps_trigger_in_parens():
+    hass = _FakeHass({"switch.salus_x": _State("Kitchen Switch")})
     mapping = {CONF_NAME: "My Custom Name", CONF_TRIGGER_ENTITY: "switch.salus_x"}
-    assert mapping_title(mapping, hass) == "🔘 My Custom Name"
+    assert mapping_title(mapping, hass) == "🔘 My Custom Name (Kitchen Switch)"
 
 
 def test_no_hass_uses_ids():

@@ -58,8 +58,15 @@ A click = **number of ON/OFF transitions within a time window**, not a state.
   one object). Both validate through `MAPPING_SCHEMA`.
 - `schema.py` — `MAPPING_SCHEMA` (shared by YAML setup and the config flow) and
   `mapping_title()` (the emoji entry-title summary). `mapping_title(mapping, hass)`
-  shows entity **friendly names** (resolved via `hass.states`), falling back to
-  the raw entity id when `hass` is omitted or the entity isn't loaded yet.
+  renders `🔘 {name} ({trigger}) · {emoji} {targets}`, where the trigger and each
+  action target show their entity **friendly name** (resolved via `hass.states`),
+  falling back to the raw entity id when `hass` is omitted or the entity isn't
+  loaded yet. Because of that fallback, `__init__.py` refreshes titles for **all**
+  domain entries (including **disabled** ones, which never run
+  `async_setup_entry`) from `async_setup`, deferred to `EVENT_HOMEASSISTANT_STARTED`
+  at cold start (entities aren't loaded during setup) or immediately if already
+  running. `async_setup_entry` additionally refreshes its own entry when added
+  or reloaded mid-session.
 - `__init__.py` — YAML setup (list under `button_actions:`), `button_actions.reload`
   service, and config-entry lifecycle. Refreshes each entry's title on setup.
 - `const.py` — keys, defaults, gesture constants, event name.

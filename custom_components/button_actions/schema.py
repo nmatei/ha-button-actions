@@ -94,10 +94,11 @@ def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
     the entity is loaded, falling back to the raw id otherwise.
 
     Example:
-    ``🔘 Laurentiu · 👆 Light A, Light B · ✌️ scene.x``
+    ``🔘 Laurentiu (Shelly Switch) · 👆 Light A, Light B · ✌️ scene.x``
     """
-    name = mapping.get(CONF_NAME) or _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
-    head = f"🔘 {name}"
+    trigger = _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
+    name = mapping.get(CONF_NAME)
+    head = f"🔘 {name} ({trigger})" if name else f"🔘 {trigger}"
     segments = [
         f"{emoji} {_summarize_action(mapping[key], hass)}"
         for emoji, key in (

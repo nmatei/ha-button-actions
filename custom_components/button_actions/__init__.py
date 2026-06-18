@@ -15,6 +15,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.reload import async_integration_yaml_config
@@ -80,7 +81,33 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         _LOGGER.info("Reloaded %d button_actions YAML mapping(s)", len(new_mappings))
 
     hass.services.async_register(DOMAIN, SERVICE_RELOAD, _handle_reload)
+
+    # Refresh every entry's friendly-name title — including disabled ones, which
+    # never run async_setup_entry. At cold start the trigger/target entities
+    # aren't loaded yet (titles would fall back to raw ids), so defer until HA
+    # has started; if we're already running, do it now.
+    @callback
+    def _refresh_all_titles(_event: Any = None) -> None:
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            mapping = {**entry.data, **entry.options}
+            _async_refresh_title(hass, entry, mapping)
+
+    if hass.is_running:
+        _refresh_all_titles()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _refresh_all_titles)
+
     return True
+
+
+@callback
+def _async_refresh_title(
+    hass: HomeAssistant, entry: ConfigEntry, mapping: dict
+) -> None:
+    """Set the entry title to a fresh, friendly-name summary of the mapping."""
+    title = mapping_title(mapping, hass)
+    if entry.title != title:
+        hass.config_entries.async_update_entry(entry, title=title)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -88,11 +115,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = _domain_data(hass)
     mapping = {**entry.data, **entry.options}
 
-    # Keep the entry title a fresh summary of what the mapping does. Done before
-    # the update listener is attached so it doesn't trigger an extra reload.
-    title = mapping_title(mapping, hass)
-    if entry.title != title:
-        hass.config_entries.async_update_entry(entry, title=title)
+    # Cold-start titles are refreshed centrally in async_setup once HA has
+    # started (entities loaded). Here we only need to handle entries set up
+    # while HA is already running (a freshly added or reloaded entry), whose
+    # target entities are present, so the names resolve immediately.
+    if hass.is_running:
+        _async_refresh_title(hass, entry, mapping)
 
     controller = ButtonActionController(hass, mapping)
     controller.async_setup()
