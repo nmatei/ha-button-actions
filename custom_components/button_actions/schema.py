@@ -55,6 +55,14 @@ MAPPING_SCHEMA = vol.Schema(
 
 _TOGGLE_SERVICES = ("homeassistant.toggle", "light.toggle", "switch.toggle")
 
+# Title head format: ``🔘 {name} [ {trigger} ]`` (or ``🔘 {trigger}`` with no
+# name). These markers are shared by ``mapping_title`` and its inverse,
+# ``name_from_title``, so the round-trip stays consistent.
+_TITLE_PREFIX = "🔘 "
+_TRIGGER_OPEN = " [ "
+_TRIGGER_CLOSE = " ]"
+_SEGMENT_SEP = " · "
+
 
 def _entity_name(hass: "HomeAssistant | None", entity_id: str) -> str:
     """Friendly name for an entity, falling back to its id."""
@@ -94,11 +102,14 @@ def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
     the entity is loaded, falling back to the raw id otherwise.
 
     Example:
-    ``🔘 Laurentiu (Shelly Switch) · 👆 Light A, Light B · ✌️ scene.x``
+    ``🔘 Laurentiu [ Shelly Switch ] · 👆 Light A, Light B · ✌️ scene.x``
     """
     trigger = _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
     name = mapping.get(CONF_NAME)
-    head = f"🔘 {name} ({trigger})" if name else f"🔘 {trigger}"
+    if name:
+        head = f"{_TITLE_PREFIX}{name}{_TRIGGER_OPEN}{trigger}{_TRIGGER_CLOSE}"
+    else:
+        head = f"{_TITLE_PREFIX}{trigger}"
     segments = [
         f"{emoji} {_summarize_action(mapping[key], hass)}"
         for emoji, key in (
@@ -108,4 +119,30 @@ def mapping_title(mapping: dict, hass: "HomeAssistant | None" = None) -> str:
         )
         if mapping.get(key)
     ]
-    return f"{head} · {' · '.join(segments)}" if segments else head
+    return f"{head}{_SEGMENT_SEP}{' · '.join(segments)}" if segments else head
+
+
+def name_from_title(
+    title: str, mapping: dict, hass: "HomeAssistant | None" = None
+) -> str | None:
+    """Recover the user-facing name from a (possibly hand-edited) entry title.
+
+    Inverse of :func:`mapping_title`'s head. HA's "edit name" dialog edits the
+    whole title, so when a user renames an entry we reinterpret what they typed
+    as the configured ``name``. Returns ``None`` when the title carries no
+    custom name (i.e. it's just the trigger), so the caller can clear it.
+    """
+    text = title.strip()
+    if text.startswith(_TITLE_PREFIX.strip()):
+        text = text[len(_TITLE_PREFIX.strip()) :].strip()
+    # Keep only the head; drop any gesture summary.
+    text = text.split(_SEGMENT_SEP, 1)[0].strip()
+    if "[" in text:
+        # ``Name [ Trigger ]`` → the part before the bracket is the name.
+        return text.split("[", 1)[0].strip() or None
+    # No bracket → the head was just the trigger (no custom name). Treat the
+    # typed text as a new name unless it still equals the trigger's display.
+    trigger = _entity_name(hass, mapping[CONF_TRIGGER_ENTITY])
+    if not text or text == trigger:
+        return None
+    return text

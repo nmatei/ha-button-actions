@@ -22,13 +22,14 @@ from homeassistant.helpers.reload import async_integration_yaml_config
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_NAME,
     DATA_CONTROLLERS,
     DATA_YAML_CONFIG,
     DOMAIN,
     SERVICE_RELOAD,
 )
 from .controller import ButtonActionController
-from .schema import MAPPING_SCHEMA, mapping_title
+from .schema import MAPPING_SCHEMA, mapping_title, name_from_title
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -140,5 +141,23 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the entry when its options change."""
+    """React to entry updates: option changes (reload) and manual renames.
+
+    HA's "edit name" dialog edits the whole title, so a manual rename arrives
+    here as a title that no longer matches our generated summary. We reinterpret
+    what the user typed as the configured ``name`` and regenerate the full
+    title; that re-entry then takes the reload path below.
+    """
+    mapping = {**entry.data, **entry.options}
+    if entry.title != mapping_title(mapping, hass):
+        new_name = name_from_title(entry.title, mapping, hass)
+        data = dict(entry.data)
+        if new_name:
+            data[CONF_NAME] = new_name
+        else:
+            data.pop(CONF_NAME, None)
+        regenerated = mapping_title({**data, **entry.options}, hass)
+        hass.config_entries.async_update_entry(entry, data=data, title=regenerated)
+        return
+
     await hass.config_entries.async_reload(entry.entry_id)

@@ -12,7 +12,7 @@ from button_actions.const import (
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRIGGER_ENTITY,
 )
-from button_actions.schema import mapping_title
+from button_actions.schema import mapping_title, name_from_title
 
 
 class _State:
@@ -62,10 +62,10 @@ def test_falls_back_to_entity_id_when_unknown():
     assert mapping_title(mapping, hass) == "🔘 switch.salus_x · ✌️ light.led_kitchen"
 
 
-def test_explicit_name_keeps_trigger_in_parens():
+def test_explicit_name_keeps_trigger_in_brackets():
     hass = _FakeHass({"switch.salus_x": _State("Kitchen Switch")})
     mapping = {CONF_NAME: "My Custom Name", CONF_TRIGGER_ENTITY: "switch.salus_x"}
-    assert mapping_title(mapping, hass) == "🔘 My Custom Name (Kitchen Switch)"
+    assert mapping_title(mapping, hass) == "🔘 My Custom Name [ Kitchen Switch ]"
 
 
 def test_no_hass_uses_ids():
@@ -74,3 +74,37 @@ def test_no_hass_uses_ids():
         CONF_SINGLE_CLICK_ACTION: _toggle("light.led_kitchen"),
     }
     assert mapping_title(mapping) == "🔘 switch.salus_x · 👆 light.led_kitchen"
+
+
+# --- name_from_title: inverse used when a user renames the entry ---
+
+_TRIGGER_HASS = _FakeHass({"switch.salus_x": _State("Kitchen Switch")})
+
+
+def _trigger_mapping():
+    return {CONF_TRIGGER_ENTITY: "switch.salus_x"}
+
+
+def test_name_from_full_title():
+    title = "🔘 My Name [ Kitchen Switch ] · ✌️ LED Kitchen"
+    assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) == "My Name"
+
+
+def test_name_from_in_place_edit():
+    title = "🔘 Kitchen [ Kitchen Switch ] · ✌️ LED Kitchen"
+    assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) == "Kitchen"
+
+
+def test_name_from_fresh_typed_name_without_brackets():
+    # User cleared the field and typed a plain name.
+    assert name_from_title("Kitchen", _trigger_mapping(), _TRIGGER_HASS) == "Kitchen"
+
+
+def test_name_equal_to_trigger_clears_name():
+    # Head was just the trigger and stayed that way → no custom name.
+    title = "🔘 Kitchen Switch · ✌️ LED Kitchen"
+    assert name_from_title(title, _trigger_mapping(), _TRIGGER_HASS) is None
+
+
+def test_empty_name_clears_name():
+    assert name_from_title("🔘  [ Kitchen Switch ]", _trigger_mapping(), _TRIGGER_HASS) is None
