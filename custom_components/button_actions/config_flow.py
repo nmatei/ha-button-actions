@@ -71,7 +71,7 @@ TEMPLATE_MAPPING: dict[str, Any] = {
     "click_window": DEFAULT_CLICK_WINDOW,
     "long_press_time": DEFAULT_LONG_PRESS_TIME,
     "fire_events": False,
-    "physical_only": False,
+    "physical_only": DEFAULT_PHYSICAL_ONLY,
     "single_click_action": [
         {"service": "light.toggle", "target": {"entity_id": ["light.strip_1"]}}
     ],

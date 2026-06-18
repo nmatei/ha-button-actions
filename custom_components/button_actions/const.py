@@ -43,11 +43,11 @@ GESTURE_CLICK_COUNT: Final = {
 }
 
 # Defaults --------------------------------------------------------------------
-DEFAULT_MODE: Final = MODE_MOMENTARY
+DEFAULT_MODE: Final = MODE_TOGGLE
 DEFAULT_CLICK_WINDOW: Final = 600  # ms
 DEFAULT_LONG_PRESS_TIME: Final = 1200  # ms
 DEFAULT_FIRE_EVENTS: Final = False
-DEFAULT_PHYSICAL_ONLY: Final = False
+DEFAULT_PHYSICAL_ONLY: Final = True
 
 # Events ----------------------------------------------------------------------
 EVENT_GESTURE: Final = "button_actions_gesture"
