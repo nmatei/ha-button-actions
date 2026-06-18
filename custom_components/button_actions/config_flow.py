@@ -122,7 +122,7 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
             CONF_CLICK_WINDOW, default=d(CONF_CLICK_WINDOW, DEFAULT_CLICK_WINDOW)
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
-                min=100, max=3000, step=50, unit_of_measurement="ms"
+                min=100, max=5000, step=50, unit_of_measurement="ms"
             )
         ),
         vol.Optional(
@@ -144,8 +144,13 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
         target_default = defaults.get(target_key)
         if not _has_targets(target_default):
             target_default = _targets_from_action(defaults.get(action_key))
+        # Prefill via ``suggested_value`` (display only), NOT ``default``. A
+        # ``default`` is re-injected by voluptuous when the cleared picker omits
+        # the key on submit, so removed targets would silently come back.
         schema[
-            vol.Optional(target_key, default=target_default or {})
+            vol.Optional(
+                target_key, description={"suggested_value": target_default or {}}
+            )
         ] = selector.TargetSelector()
 
     return vol.Schema(schema)
