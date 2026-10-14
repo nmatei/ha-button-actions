@@ -91,6 +91,8 @@ button_actions:
     single_click_action: [...]  # standard HA action sequence
     double_click_action: [...]
     long_press_action: [...]
+    single_click_delay: 300     # optional sleep (ms) between actions, per gesture
+                                # (double_click_delay / long_press_delay too)
 ```
 
 UI mirrors this; the guided form maps a target picker to a `homeassistant.toggle`
@@ -119,6 +121,15 @@ action. Events: `button_actions_gesture` with `{entity_id, gesture, name}`.
   `cv.SCRIPT_SCHEMA`) splits automation entities out of a toggle step into an
   `automation.trigger` step so a press *runs* the automation. Non-toggle steps,
   device/area targets, and other domains pass through untouched.
+
+- **Sleep between actions** (`*_delay`): `schema.delay_spec` normalizes to an
+  `int` (one number = gap *between* actions; first runs instantly) or a
+  `list[int]` (comma list = sleep *before* each action, cycling). The stored
+  action stays a single toggle (so the picker round-trips); `schema.apply_delays`
+  (in `controller.py`, after `expand_run_targets`) splits toggle /
+  `automation.trigger` steps into one step per target and inserts `delay`
+  steps at runtime. With a delay set the `Script` runs in `restart` mode so a
+  re-press mid-sequence starts over. Empty/0 leaves the sequence untouched.
 
 ## Development
 

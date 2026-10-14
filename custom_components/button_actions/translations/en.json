@@ -20,8 +20,16 @@
           "fire_events": "Also fire button_actions_gesture events",
           "physical_only": "Only react to physical presses (ignore changes made by HA users/automations)",
           "single_click_targets": "Single click → toggle these",
+          "single_click_delay": "Single click → sleep between (ms)",
           "double_click_targets": "Double click → toggle these",
-          "long_press_targets": "Long press → toggle these"
+          "double_click_delay": "Double click → sleep between (ms)",
+          "long_press_targets": "Long press → toggle these",
+          "long_press_delay": "Long press → sleep between (ms)"
+        },
+        "data_description": {
+          "single_click_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start.",
+          "double_click_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start.",
+          "long_press_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start."
         }
       },
       "yaml": {
@@ -60,8 +68,16 @@
           "fire_events": "Also fire button_actions_gesture events",
           "physical_only": "Only react to physical presses (ignore changes made by HA users/automations)",
           "single_click_targets": "Single click → toggle these",
+          "single_click_delay": "Single click → sleep between (ms)",
           "double_click_targets": "Double click → toggle these",
-          "long_press_targets": "Long press → toggle these"
+          "double_click_delay": "Double click → sleep between (ms)",
+          "long_press_targets": "Long press → toggle these",
+          "long_press_delay": "Long press → sleep between (ms)"
+        },
+        "data_description": {
+          "single_click_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start.",
+          "double_click_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start.",
+          "long_press_delay": "Empty or 0 = all at once. One number (e.g. 300) = pause between actions. A list (e.g. 0,200,400) = pause before the 1st, 2nd, 3rd action…, repeating from the start."
         }
       },
       "yaml": {

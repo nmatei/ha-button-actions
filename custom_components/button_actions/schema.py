@@ -18,13 +18,16 @@ if TYPE_CHECKING:
 from .const import (
     CONF_CLICK_WINDOW,
     CONF_DOUBLE_CLICK_ACTION,
+    CONF_DOUBLE_CLICK_DELAY,
     CONF_FIRE_EVENTS,
     CONF_LONG_PRESS_ACTION,
+    CONF_LONG_PRESS_DELAY,
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
     CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
+    CONF_SINGLE_CLICK_DELAY,
     CONF_TRANSITIONS_PER_CLICK,
     CONF_TRIGGER_ENTITY,
     DEFAULT_CLICK_WINDOW,
@@ -34,6 +37,38 @@ from .const import (
     DEFAULT_PHYSICAL_ONLY,
     MODES,
 )
+
+
+def delay_spec(value: object) -> "int | list[int] | None":
+    """Validate a gesture's sleep setting (ms).
+
+    A single number (``300`` / ``"300"``) stays an ``int``; a comma string
+    (``"100, 200"``) or a list becomes a ``list[int]``. Empty means no delay.
+    """
+    if value is None or value == "":
+        return None
+    single = not isinstance(value, (list, tuple)) and not (
+        isinstance(value, str) and "," in value
+    )
+    if isinstance(value, str):
+        value = [part.strip() for part in value.split(",") if part.strip()]
+    elif not isinstance(value, (list, tuple)):
+        value = [value]
+    delays: list[int] = []
+    for part in value:
+        if isinstance(part, bool):
+            raise vol.Invalid(f"Invalid delay: {part!r}")
+        try:
+            number = int(part)
+        except (TypeError, ValueError) as err:
+            raise vol.Invalid(f"Invalid delay: {part!r}") from err
+        if number < 0:
+            raise vol.Invalid(f"Delay can't be negative: {number}")
+        delays.append(number)
+    if not delays:
+        return None
+    return delays[0] if single else delays
+
 
 MAPPING_SCHEMA = vol.Schema(
     {
@@ -50,6 +85,9 @@ MAPPING_SCHEMA = vol.Schema(
         vol.Optional(CONF_SINGLE_CLICK_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_DOUBLE_CLICK_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_LONG_PRESS_ACTION): cv.SCRIPT_SCHEMA,
+        vol.Optional(CONF_SINGLE_CLICK_DELAY): delay_spec,
+        vol.Optional(CONF_DOUBLE_CLICK_DELAY): delay_spec,
+        vol.Optional(CONF_LONG_PRESS_DELAY): delay_spec,
     }
 )
 
@@ -98,6 +136,60 @@ def expand_run_targets(sequence: object) -> object:
             {"service": "automation.trigger", "target": {"entity_id": automations}}
         )
     return expanded
+
+
+def delay_for(spec: "int | list[int]", index: int) -> int:
+    """Sleep (ms) before the action at ``index``.
+
+    A single number ``N`` is the gap *between* actions: the first runs
+    instantly, then ``N`` before each next one. A list gives the sleep before
+    each action in turn (first entry before the first action) and cycles.
+    """
+    if isinstance(spec, list):
+        return spec[index % len(spec)] if spec else 0
+    return 0 if index == 0 else int(spec)
+
+
+_SPLIT_SERVICES = (*_TOGGLE_SERVICES, "automation.trigger")
+
+
+def _split_targets(step: object) -> list:
+    """Split a toggle/trigger step into one step per target, in order."""
+    if not isinstance(step, dict):
+        return [step]
+    service = step.get("service") or step.get("action")
+    target = step.get("target")
+    if service not in _SPLIT_SERVICES or not isinstance(target, dict):
+        return [step]
+    parts: list = []
+    for key in ("entity_id", "device_id", "area_id"):
+        values = target.get(key)
+        if isinstance(values, str):
+            values = [values]
+        parts.extend({**step, "target": {key: [v]}} for v in values or ())
+    return parts or [step]
+
+
+def apply_delays(sequence: object, spec: "int | list[int] | None") -> object:
+    """Run a gesture's actions one by one with a sleep between them.
+
+    Each toggled/triggered target becomes its own action (other steps count as
+    one action each), and a ``delay`` step is inserted before every action
+    whose :func:`delay_for` is positive. With no (or an all-zero) spec the
+    sequence is returned untouched, so everything still runs instantly.
+    """
+    if not isinstance(sequence, list) or not spec:
+        return sequence
+    if isinstance(spec, list) and not any(spec):
+        return sequence
+    actions = [part for step in sequence for part in _split_targets(step)]
+    delayed: list = []
+    for index, action in enumerate(actions):
+        ms = delay_for(spec, index)
+        if ms > 0:
+            delayed.append({"delay": {"milliseconds": ms}})
+        delayed.append(action)
+    return delayed
 
 # Title head format: ``{name} 🔘 [ {trigger} ]`` so the entry leads with the
 # user's name (or ``🔘 {trigger}`` when no name is set). These markers are shared

@@ -108,6 +108,7 @@ button_actions:
           entity_id:
             - light.tapo_strip_1
             - light.tapo_strip_2
+    single_click_delay: 300    # optional ms sleep between actions (see below)
     double_click_action:       # optional
       - service: scene.turn_on
         target: { entity_id: scene.movie }
@@ -134,6 +135,7 @@ Tools → Actions) — no restart needed.
 | `fire_events` | `false` | Also fire `button_actions_gesture` events |
 | `physical_only` | `false` | Only react to physical presses; ignore changes triggered by a Home Assistant user or automation/script |
 | `single_click_action` / `double_click_action` / `long_press_action` | — | Action sequences to run |
+| `single_click_delay` / `double_click_delay` / `long_press_delay` | `0` | Sleep (ms) between that gesture's actions — each toggled target runs one by one. One number (`300`) = first action instantly, then 300 ms between each. A list (`"0,200,400"`) = sleep before the 1st, 2nd, 3rd action…, cycling from the start when there are more actions. Pressing again mid-sequence restarts it |
 
 ## 📡 Events
 

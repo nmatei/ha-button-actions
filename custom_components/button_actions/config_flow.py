@@ -32,13 +32,16 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_CLICK_WINDOW,
     CONF_DOUBLE_CLICK_ACTION,
+    CONF_DOUBLE_CLICK_DELAY,
     CONF_FIRE_EVENTS,
     CONF_LONG_PRESS_ACTION,
+    CONF_LONG_PRESS_DELAY,
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
     CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
+    CONF_SINGLE_CLICK_DELAY,
     CONF_TRIGGER_ENTITY,
     DEFAULT_CLICK_WINDOW,
     DEFAULT_FIRE_EVENTS,
@@ -53,11 +56,11 @@ from .schema import MAPPING_SCHEMA, mapping_title
 # The single field that holds the whole mapping in the YAML step.
 CONF_CONFIG = "config"
 
-# (action key, UI-only target-picker key) per gesture.
+# (action key, UI-only target-picker key, sleep-between key) per gesture.
 _GESTURES = (
-    (CONF_SINGLE_CLICK_ACTION, "single_click_targets"),
-    (CONF_DOUBLE_CLICK_ACTION, "double_click_targets"),
-    (CONF_LONG_PRESS_ACTION, "long_press_targets"),
+    (CONF_SINGLE_CLICK_ACTION, "single_click_targets", CONF_SINGLE_CLICK_DELAY),
+    (CONF_DOUBLE_CLICK_ACTION, "double_click_targets", CONF_DOUBLE_CLICK_DELAY),
+    (CONF_LONG_PRESS_ACTION, "long_press_targets", CONF_LONG_PRESS_DELAY),
 )
 
 # Services treated as a simple toggle for round-tripping to the target picker.
@@ -93,6 +96,13 @@ def _targets_from_action(action: Any) -> dict[str, Any]:
         if service in _TOGGLE_SERVICES and isinstance(target, dict):
             return target
     return {}
+
+
+def _delay_text(value: Any) -> str:
+    """Show a stored delay (int or list of ints) as the text field's value."""
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(v) for v in value)
+    return "" if value is None else str(value)
 
 
 def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
@@ -146,7 +156,7 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
         ): selector.BooleanSelector(),
     }
 
-    for action_key, target_key in _GESTURES:
+    for action_key, target_key, delay_key in _GESTURES:
         target_default = defaults.get(target_key)
         if not _has_targets(target_default):
             target_default = _targets_from_action(defaults.get(action_key))
@@ -158,6 +168,13 @@ def _form_schema(defaults: dict[str, Any]) -> vol.Schema:
                 target_key, description={"suggested_value": target_default or {}}
             )
         ] = selector.TargetSelector()
+        # Sleep between this gesture's actions: ``300`` or ``0, 200, 400``.
+        schema[
+            vol.Optional(
+                delay_key,
+                description={"suggested_value": _delay_text(defaults.get(delay_key))},
+            )
+        ] = selector.TextSelector()
 
     return vol.Schema(schema)
 
@@ -199,7 +216,13 @@ def _mapping_from_form(user_input: dict[str, Any], base: dict[str, Any]) -> dict
     if trigger:
         mapping[CONF_TRIGGER_ENTITY] = trigger
 
-    for action_key, target_key in _GESTURES:
+    for action_key, target_key, delay_key in _GESTURES:
+        delay = user_input.get(delay_key)
+        if isinstance(delay, str):
+            delay = delay.strip()
+        if delay not in (None, ""):
+            # Parsed/validated by MAPPING_SCHEMA (delay_spec).
+            mapping[delay_key] = delay
         target = user_input.get(target_key)
         if _has_targets(target):
             mapping[action_key] = [

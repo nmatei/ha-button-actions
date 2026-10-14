@@ -12,7 +12,16 @@ from button_actions.const import (
     CONF_SINGLE_CLICK_ACTION,
     CONF_TRIGGER_ENTITY,
 )
-from button_actions.schema import expand_run_targets, mapping_title, name_from_title
+import pytest
+import voluptuous as vol
+
+from button_actions.schema import (
+    apply_delays,
+    delay_spec,
+    expand_run_targets,
+    mapping_title,
+    name_from_title,
+)
 
 
 class _State:
@@ -175,3 +184,117 @@ def test_name_equal_to_trigger_clears_name():
 
 def test_empty_name_clears_name():
     assert name_from_title("🔘 [ Kitchen Switch ]", _trigger_mapping(), _TRIGGER_HASS) is None
+
+
+# -- sleep between actions --------------------------------------------------
+
+
+def _ha_toggle(*entity_ids: str) -> list:
+    return [{"service": "homeassistant.toggle", "target": {"entity_id": list(entity_ids)}}]
+
+
+def _one(service: str, entity_id: str) -> dict:
+    return {"service": service, "target": {"entity_id": [entity_id]}}
+
+
+def _sleep(ms: int) -> dict:
+    return {"delay": {"milliseconds": ms}}
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, None),
+        ("", None),
+        ("  ", None),
+        (300, 300),
+        ("300", 300),
+        ("100, 200", [100, 200]),
+        ("0,200,400", [0, 200, 400]),
+        ("300,", [300]),
+        ([100, "200"], [100, 200]),
+    ],
+)
+def test_delay_spec_parses(raw, expected):
+    assert delay_spec(raw) == expected
+
+
+@pytest.mark.parametrize("raw", ["abc", "100,x", -5, "10,-1", True])
+def test_delay_spec_rejects_invalid(raw):
+    with pytest.raises(vol.Invalid):
+        delay_spec(raw)
+
+
+def test_no_delay_leaves_sequence_untouched():
+    seq = _ha_toggle("light.a", "light.b")
+    assert apply_delays(seq, None) is seq
+    assert apply_delays(seq, 0) is seq
+    assert apply_delays(seq, [0, 0]) is seq
+
+
+def test_single_number_is_gap_between_actions():
+    seq = _ha_toggle("light.a", "light.b", "light.c")
+    t = "homeassistant.toggle"
+    assert apply_delays(seq, 300) == [
+        _one(t, "light.a"),
+        _sleep(300),
+        _one(t, "light.b"),
+        _sleep(300),
+        _one(t, "light.c"),
+    ]
+
+
+def test_list_is_sleep_before_each_action_and_cycles():
+    seq = _ha_toggle("light.a", "light.b", "light.c")
+    t = "homeassistant.toggle"
+    assert apply_delays(seq, [100, 200]) == [
+        _sleep(100),
+        _one(t, "light.a"),
+        _sleep(200),
+        _one(t, "light.b"),
+        _sleep(100),
+        _one(t, "light.c"),
+    ]
+
+
+def test_zero_entries_in_list_add_no_sleep():
+    seq = _ha_toggle("light.a", "light.b")
+    t = "homeassistant.toggle"
+    assert apply_delays(seq, [0, 500]) == [
+        _one(t, "light.a"),
+        _sleep(500),
+        _one(t, "light.b"),
+    ]
+
+
+def test_delays_apply_to_triggered_automations_too():
+    seq = expand_run_targets(_ha_toggle("light.a", "automation.x", "automation.y"))
+    assert apply_delays(seq, 100) == [
+        _one("homeassistant.toggle", "light.a"),
+        _sleep(100),
+        _one("automation.trigger", "automation.x"),
+        _sleep(100),
+        _one("automation.trigger", "automation.y"),
+    ]
+
+
+def test_device_and_area_targets_are_split():
+    seq = [
+        {
+            "service": "light.toggle",
+            "target": {"entity_id": "light.a", "device_id": ["d1"], "area_id": ["kitchen"]},
+        }
+    ]
+    assert apply_delays(seq, 50) == [
+        {"service": "light.toggle", "target": {"entity_id": ["light.a"]}},
+        _sleep(50),
+        {"service": "light.toggle", "target": {"device_id": ["d1"]}},
+        _sleep(50),
+        {"service": "light.toggle", "target": {"area_id": ["kitchen"]}},
+    ]
+
+
+def test_non_toggle_steps_count_as_one_action_each():
+    scene = {"service": "scene.turn_on", "target": {"entity_id": ["scene.a", "scene.b"]}}
+    script = {"service": "script.x"}
+    assert apply_delays([scene, script], 200) == [scene, _sleep(200), script]

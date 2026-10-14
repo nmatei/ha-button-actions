@@ -20,6 +20,12 @@ CONF_SINGLE_CLICK_ACTION: Final = "single_click_action"
 CONF_DOUBLE_CLICK_ACTION: Final = "double_click_action"
 CONF_LONG_PRESS_ACTION: Final = "long_press_action"
 
+# Optional sleep (ms) between a gesture's actions: one number, or a list that
+# cycles (see schema.delay_for).
+CONF_SINGLE_CLICK_DELAY: Final = "single_click_delay"
+CONF_DOUBLE_CLICK_DELAY: Final = "double_click_delay"
+CONF_LONG_PRESS_DELAY: Final = "long_press_delay"
+
 # Input modes -----------------------------------------------------------------
 MODE_MOMENTARY: Final = "momentary"
 MODE_TOGGLE: Final = "toggle"

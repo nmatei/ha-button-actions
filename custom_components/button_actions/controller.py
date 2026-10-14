@@ -23,13 +23,16 @@ from .const import (
     ATTR_NAME,
     CONF_CLICK_WINDOW,
     CONF_DOUBLE_CLICK_ACTION,
+    CONF_DOUBLE_CLICK_DELAY,
     CONF_FIRE_EVENTS,
     CONF_LONG_PRESS_ACTION,
+    CONF_LONG_PRESS_DELAY,
     CONF_LONG_PRESS_TIME,
     CONF_MODE,
     CONF_NAME,
     CONF_PHYSICAL_ONLY,
     CONF_SINGLE_CLICK_ACTION,
+    CONF_SINGLE_CLICK_DELAY,
     CONF_TRANSITIONS_PER_CLICK,
     CONF_TRIGGER_ENTITY,
     DEFAULT_CLICK_WINDOW,
@@ -45,7 +48,7 @@ from .const import (
     TRANSITIONS_PER_CLICK_BY_MODE,
 )
 from .gesture import GestureDetector
-from .schema import expand_run_targets
+from .schema import apply_delays, delay_spec, expand_run_targets
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +57,13 @@ _ACTION_KEYS = {
     GESTURE_SINGLE: CONF_SINGLE_CLICK_ACTION,
     GESTURE_DOUBLE: CONF_DOUBLE_CLICK_ACTION,
     GESTURE_LONG: CONF_LONG_PRESS_ACTION,
+}
+
+# Maps each gesture to the config key holding its sleep between actions.
+_DELAY_KEYS = {
+    GESTURE_SINGLE: CONF_SINGLE_CLICK_DELAY,
+    GESTURE_DOUBLE: CONF_DOUBLE_CLICK_DELAY,
+    GESTURE_LONG: CONF_LONG_PRESS_DELAY,
 }
 
 
@@ -94,6 +104,9 @@ class ButtonActionController:
             # state; expand the toggle the picker/YAML produced accordingly.
             sequence = expand_run_targets(sequence)
             try:
+                delay = delay_spec(config.get(_DELAY_KEYS[gesture]))
+                # Optional sleep between actions: each target runs one by one.
+                sequence = apply_delays(sequence, delay)
                 sequence = cv.SCRIPT_SCHEMA(sequence)
             except vol.Invalid as err:
                 _LOGGER.error(
@@ -108,6 +121,9 @@ class ButtonActionController:
                 sequence,
                 f"{self._name} {gesture}",
                 DOMAIN,
+                # A re-press while a delayed sequence is still sleeping starts
+                # it over instead of being dropped ("already running").
+                script_mode="restart" if delay else "single",
             )
 
         # A gesture is active if it has an action or events are enabled.
